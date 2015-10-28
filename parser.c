@@ -11,8 +11,15 @@ void parse(parser p, token* i, bool can_fail) {
 }
 
 parser* oneof(char* list) {
+  list* static_context = list_new();
+  char* elem;
   while(*list) {
-    
+    elem = malloc(sizeof(char));
+    *elem = *list;
+    list_push_back(static_context, elem);
+    list++;
+  }
+  
 }
 
 parser* create_parser(static_context sc, dynamic_parser* dp, bool allow_empty) {
@@ -23,12 +30,4 @@ parser* create_parser(static_context sc, dynamic_parser* dp, bool allow_empty) {
   p.dp = dp;
   p.allow_empty = allow_empty;
   return p;
-}
-
-void init_parser_internal() {
-  
-}
-
-void finalize_parser_internal() {
-
 }

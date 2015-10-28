@@ -13,15 +13,15 @@ typedef enum {
   PARSER_NORMAL = 1
 } parser_status;
 
-typedef char** static_context;
+typedef list static_context;
 
 
 typedef struct {
   void* obj;
-  token* i; //remaining input
+  input* i; //remaining input
 } parser_dp_return;
 
-typedef parser_dp_return (*dynamic_parser)(token*);
+typedef parser_dp_return (*dynamic_parser)(parser*, input*);
 
 typedef struct {
   parser_status status;
