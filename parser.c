@@ -112,6 +112,7 @@ parser* parser_new(list* static_context, dynamic_parser_closure dpc, bool allow_
 
 void parser_delete(parser* p) {
   list_delete(p->static_context);
+  free(p->dpc);
   free(p);
 }
 
