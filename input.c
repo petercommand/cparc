@@ -13,6 +13,9 @@ void input_delete(input* i) {
   free(i);
 }
 
+char input_peek(input* i) {
+  return i->input[i->cursor];
+
 input* input_next(input * i) {
   if(i->input[i->cursor] == '\n') {
     i->line++;

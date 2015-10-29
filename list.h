@@ -6,6 +6,7 @@ typedef struct {
   list_item* prev;
   list_item* next;
   void* item;
+  tag_t tag;
 } list_item;
 
 typedef struct {

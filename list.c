@@ -10,16 +10,18 @@ list* list_new_with_tag(tag_t tag) {
   l.tag = tag;
 }
 
-list* list_push_back(list* l, void* item) {
+list* list_push_back_with_tag(list* l, void* item, tag_t tag) {
   if(l->tail == NULL) {
     l->head = l->tail = (list *) calloc(sizeof(list_item));
     l->tail->item = item;
+    l->tail->tag = tag;
   }
   else {
     list_item* tail = l->tail;
     tail->next = (list *) calloc(sizeof(list_item));
     tail->next->prev = tail;
     tail->next->item = item;
+    tail->next->tag = tag;
  }
 }
 
@@ -27,7 +29,7 @@ void list_append(list* a, list* b) {
   //append list b to list a at the end of the list, list b is untouched
   list_item* head = b->head;
   while(head) {
-    list_push_back(a, head->item);
+    list_push_back_with_tag(a, head->item, head->tag);
     head++;
   }
 }

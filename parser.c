@@ -4,8 +4,11 @@ static char char_to_ptr_mapping[256];
 static int int_to_ptr_mapping[INT_MAX];
 
 list* static_context_new() {
-  return list_new_with_tag(ELEM_CHAR);
+  return list_new();
 }
+
+bool static_match(static_context* sc, input* i) {
+  if(sc
 
 parser_dp_return dynamic_parser_closure_eval(dynamic_parser_closure* closure, parser* p, input* input) {
   switch(closure->tag) {
@@ -29,39 +32,42 @@ void parse(parser* p, token* i, bool can_fail) {
   //NOT FINISHED  
 }
 
+parser* concat(parser* a, parser* b) {
+  bool allow_empty = a->allow_empty && b->allow_empty;
+  list* static_context = static_context_new();
+  list_
+}
+
 parser* choice(parser* a, parser* b) {
   //choice operator
-  bool allow_empty = false;
+  bool allow_empty = a->allow_empty || b->allow_empty;
   list* new_static_context = static_context_new();
-  if(a->allow_empty || b->allow_empty) {
-    allow_empty = true;
-  }
+
   list_append(new_static_context, a->static_context);
   list_append(new_static_context, b->static_context);
-  dynamic_parser* dpc = choice_dpc(a->dpc, b->dpc);
+  dynamic_parser* dpc = choice_dpc(a, b);
   return parser_new(new_static_context, dpc, allow_empty);
 }
 
-dynamic_parser_closure* choice_dpc(dynamic_parser_closure* a, dynamic_parser_closure* b) {
+dynamic_parser_closure* choice_dpc(list* static_a, dynamic_parser_closure* dp_a, list* static_b, dynamic_parser_closure* b) {
   dynamic_parser_closure* dpc = (dynamic_parser_closure *)calloc(sizeof(dynamic_parser_closure));
-  
   dpc->tag_t = TYPE_CLOSURE;
-  dpc->two_ptr.ptr1 = a;
-  dpc->two_ptr.ptr2 = b;
-  dpc->dp_ptr = choice_dp;
-  
+  dpc->ctx->static1 = static_a;
+  dpc->ctx->dpc1 = dp_a;
+  dpc->ctx->static2 = static_b;
+  dpc->ctx->dpc2 = dp_b;
   return dpc;
 }
 
-parser_dp_return choice_dp(dynamic_parser_closure* ctx, parser* p, input* input) {
-
-  parser_dp_return result1 = dynamic_parser_closure_eval(ctx->two_ptr->ptr1, p, input);
+parser_dp_return choice_dp(dynamic_parser_closure* dpc, parser* p, input* input) {
+  if(static_match(
+  parser_dp_return result1 = dynamic_parser_closure_eval(dpc->ctx->dpc1, p, input);
   if(result1->obj) {//successful parse
     return result1;
   }
   else if(p->can_fail) {//failed parse, try second parser
     p->status = PARSER_NORMAL;
-    parser_dp_return result2 = dynamic_parser_closure_eval(ctx->two_ptr->ptr2, p, input);
+    parser_dp_return result2 = dynamic_parser_closure_eval(dpc->ctx->dpc2, p, input);
     return result2;
   }
   else {
@@ -81,14 +87,14 @@ parser* oneof(char* list) {
   char* elem;
   while(*list) {
     elem = char_to_ptr(*list);
-    list_push_back(static_context, elem);
+    list_push_back_with_tag(static_context, elem, ELEM_CHAR);
     list++;
   }
   dynamic_parser* dp = oneof_dp;
   dynamic_parser_closure dpc;
   dpc.tag = TYPE_FUNC_PTR;
   dpc.ptr = dp;
-  parser* p = parser_new(static_context, dpc, false);
+  parser* p = parser_new(static_context, dpc);
   free(static_context);
   return p;
 }
@@ -101,12 +107,11 @@ parser_dp_return oneof_dp(parser* p, input* in) {
   return ret;
 }
 
-parser* parser_new(list* static_context, dynamic_parser_closure dpc, bool allow_empty) {
+parser* parser_new(list* static_context, dynamic_parser_closure dpc) {
   parser* p = (parser *)calloc(sizeof(parser));
   p.status = PARSER_NORMAL;
   p.sc = list_copy(static_context);
   p.dpc = dpc;
-  p.allow_empty = allow_empty;
   return p;
 }
 
