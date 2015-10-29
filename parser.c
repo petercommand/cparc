@@ -22,12 +22,15 @@ parser* oneof(char* list) {
   
 }
 
-parser* create_parser(static_context sc, dynamic_parser* dp, bool allow_empty) {
-  parser p;
-  memset(&p, 0, sizeof(p));
+parser* parser_new(static_context* sc, dynamic_parser* dp, bool allow_empty) {
+  parser* p = (parser *)calloc(sizeof(parser));
   p.status = PARSER_NORMAL;
   p.sc = &sc;
   p.dp = dp;
   p.allow_empty = allow_empty;
   return p;
+}
+
+void parser_delete(parser* p) {
+  free(p);
 }
