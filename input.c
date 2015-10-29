@@ -1,6 +1,5 @@
+
 #include "input.h"
-
-
 input* input_new(char* input) {
   input* i = (input *) calloc(sizeof(input));
   i->line = 1;

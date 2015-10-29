@@ -4,6 +4,12 @@ list* list_new() {
   list* l = (list *) calloc(sizeof(list));
   return l;
 }
+
+list* list_new_with_tag(tag_t tag) {
+  list* l = list_new();
+  l.tag = tag;
+}
+
 list* list_push_back(list* l, void* item) {
   if(l->tail == NULL) {
     l->head = l->tail = (list *) calloc(sizeof(list_item));
@@ -16,6 +22,16 @@ list* list_push_back(list* l, void* item) {
     tail->next->item = item;
  }
 }
+
+void list_append(list* a, list* b) {
+  //append list b to list a at the end of the list, list b is untouched
+  list_item* head = b->head;
+  while(head) {
+    list_push_back(a, head->item);
+    head++;
+  }
+}
+    
 void* list_peek_back(list* l) {
   if(l && l->tail) {
     return l->tail->item;
@@ -33,6 +49,17 @@ void* list_pop_back(list* l) {
     return item;
   }
   return NULL;
+}
+
+list* list_copy(list* l) {
+  //return a copy of the list
+  list* new_list = list_new();
+  list_item* head = l->head;
+  while(head) {
+    new_list.push_back(head->item);
+    head = head->next;
+  }
+  return new_list;
 }
 
 void list_delete(list* l) {
