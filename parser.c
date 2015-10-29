@@ -124,12 +124,6 @@ void parser_delete(parser* p) {
 }
 
 
-void parser_init() {
-  for(int i = 0;i < 256;i++) {
-    char_to_ptr_mapping[i] = i;
-  }
-}
-
 char* char_to_ptr(char a) {
   if(!char_to_ptr_mapping[a]) {
     char_to_ptr_mapping[a] = a;
