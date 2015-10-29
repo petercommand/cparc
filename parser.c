@@ -34,19 +34,19 @@ void parse(parser* p, token* i, bool can_fail) {
 
 parser* concat(parser* a, parser* b) {
   bool allow_empty = a->allow_empty && b->allow_empty;
-  list* static_context = static_context_new();
-  list_
+  static_context* sc = static_context_new();
+  
 }
 
 parser* choice(parser* a, parser* b) {
   //choice operator
-  bool allow_empty = a->allow_empty || b->allow_empty;
-  list* new_static_context = static_context_new();
+  static_context* sc = static_context_new();
 
-  list_append(new_static_context, a->static_context);
-  list_append(new_static_context, b->static_context);
+  static_context_append(sc, a->static_context);
+  static_context_append(sc, b->static_context);
+  new_static_context.allow_empty = a->allow_empty || b->allow_empty;
   dynamic_parser* dpc = choice_dpc(a, b);
-  return parser_new(new_static_context, dpc, allow_empty);
+  return parser_new(new_static_context, dpc);
 }
 
 dynamic_parser_closure* choice_dpc(list* static_a, dynamic_parser_closure* dp_a, list* static_b, dynamic_parser_closure* b) {
