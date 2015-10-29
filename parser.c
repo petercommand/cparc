@@ -3,8 +3,11 @@
 static char char_to_ptr_mapping[256];
 static int int_to_ptr_mapping[INT_MAX];
 
-list* static_context_new() {
-  return list_new();
+static_context* static_context_new() {
+  static_context* sc = (static_context *)sizeof(static_context);
+  sc->list = list_new();
+  sc->allow_empty = false;
+  return sc;
 }
 
 bool static_match(static_context* sc, input* i) {
@@ -35,7 +38,6 @@ void parse(parser* p, token* i, bool can_fail) {
 parser* concat(parser* a, parser* b) {
   bool allow_empty = a->allow_empty && b->allow_empty;
   static_context* sc = static_context_new();
-  
 }
 
 parser* choice(parser* a, parser* b) {

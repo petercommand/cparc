@@ -40,7 +40,7 @@ typedef struct {
   dynamic_parser_closure* dpc1;
   static_context* static2;
   dynamic_parser_closure* dpc2;
-} four_ptr_closure;
+} closure_ctx;
 typedef parser_dp_return (*dynamic_parser)(dynamic_parser_closure* ctx, parser*, input*);
 
 typedef struct {
@@ -48,7 +48,7 @@ typedef struct {
   tag_t ptr1_tag;//first dp type
   tag_t ptr2_tag;//snd dp type
   union {
-    four_ptr_closure* ctx;//a pair of static & dynamic context
+    closure_ctx* ctx;//a pair of static & dynamic context
   };
   dynamic_parser* dp_ptr;
 } dynamic_parser_closure;
