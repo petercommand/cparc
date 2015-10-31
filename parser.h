@@ -71,8 +71,7 @@ typedef struct {
 enum {
   ELEM_RANGE,
   ELEM_CHAR,
-  ELEM_STR,
-
+  ELEM_STR
 } STATIC_PARSER_ELEM_TYPE;
 
 

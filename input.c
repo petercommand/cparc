@@ -15,7 +15,14 @@ void input_delete(input* i) {
 
 char input_peek(input* i) {
   return i->input[i->cursor];
-
+}
+input* input_copy(input* i) {
+  //only copy positional data, the input stream is not copied
+  input* new_input = (input *) calloc(sizeof(input));
+  *new_input = *input;
+  return new_input;
+}
+  
 input* input_next(input * i) {
   if(i->input[i->cursor] == '\n') {
     i->line++;
