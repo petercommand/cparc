@@ -1,7 +1,11 @@
-
 #include "input.h"
-input* input_new(char* input) {
-  input* i = (input *) calloc(sizeof(input));
+#include <memory.h>
+#include <stdlib.h>
+
+
+
+input_t* input_new(char* input) {
+  input_t* i = calloc(1, sizeof(input_t));
   i->line = 1;
   i->pos = 1;
   i->cursor = 1;
@@ -9,21 +13,22 @@ input* input_new(char* input) {
   return i;
 }
 
-void input_delete(input* i) {
+void input_delete(input_t* i) {
   free(i);
 }
 
-char input_peek(input* i) {
+char input_peek(input_t* i) {
   return i->input[i->cursor];
 }
-input* input_copy(input* i) {
+
+input_t* input_copy(input_t* i) {
   //only copy positional data, the input stream is not copied
-  input* new_input = (input *) calloc(sizeof(input));
-  *new_input = *input;
+  input_t* new_input = (input_t *) calloc(1, sizeof(input_t));
+  *new_input = *i;
   return new_input;
 }
   
-input* input_next(input * i) {
+input_t* input_next(input_t* i) {
   if(i->input[i->cursor] == '\n') {
     i->line++;
     i->pos = 1;
@@ -33,4 +38,5 @@ input* input_next(input * i) {
     i->pos++;
     i->cursor++;
   }
+  return i;
 }

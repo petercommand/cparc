@@ -1,7 +1,10 @@
 #ifndef PARSER_H
 #define PARSER_H
 
+#include "input.h"
+#include "list.h"
 
+#include <stdbool.h>
 /*
   parser is the main struct of any parser,
   status: this determines whether the parser is in error state
@@ -10,8 +13,8 @@
   dp: dynamic_parser:
  */
 typedef enum {
-  PARSER_FAILED = 0,
-  PARSER_NORMAL = 1
+  PARSER_NORMAL = 0,
+  PARSER_FAILED = 1
 } parser_status;
 
 enum {
@@ -21,6 +24,7 @@ enum {
 
 typedef struct {
   bool allow_empty;
+  bool can_fail;
   list* list;
 } static_context;
 
@@ -30,7 +34,8 @@ typedef struct dynamic_parser_closure dynamic_parser_closure;
 
 typedef struct {
   void* obj;
-  input* i; //remaining input
+  parser_status status;
+  input_t* i; //remaining input
 } parser_dp_return;
 
 
@@ -41,16 +46,14 @@ typedef struct {
   static_context* static2;
   dynamic_parser_closure* dpc2;
 } closure_ctx;
-typedef parser_dp_return (*dynamic_parser)(dynamic_parser_closure* ctx, parser*, input*);
+typedef parser_dp_return (*dynamic_parser)(dynamic_parser_closure* ctx, input_t*);
 
-typedef struct {
+typedef struct dynamic_parser_closure {
   tag_t tag;//closure type
-  tag_t ptr1_tag;//first dp type
-  tag_t ptr2_tag;//snd dp type
   union {
     closure_ctx* ctx;//a pair of static & dynamic context
   };
-  dynamic_parser* dp_ptr;
+  dynamic_parser dp_ptr;
 } dynamic_parser_closure;
 
 
@@ -60,9 +63,8 @@ typedef struct {
 typedef struct {
   parser_status status;
   char* error_msg;
-  list* static_context;
+  static_context* static_context;
   dynamic_parser_closure* dpc;
-  bool can_fail;
 } parser;
 
 
@@ -75,4 +77,22 @@ enum {
 } STATIC_PARSER_ELEM_TYPE;
 
 
+static_context* static_context_new();
+void static_context_delete(static_context* sc);
+void static_context_add(static_context* sc, void* item, tag_t tag);
+static_context* static_context_copy(static_context* sc);
+static_context* static_context_from_list(list* list, bool allow_empty);
+bool static_match(static_context* sc, input_t* i);
+parser_dp_return dynamic_parser_closure_eval(dynamic_parser_closure* closure, input_t* input);
+parser_dp_return parse(parser* p, input_t* i);
+dynamic_parser_closure* generic_dpc(static_context* static_a, dynamic_parser_closure* dpc_a, static_context* static_b, dynamic_parser_closure* dpc_b, dynamic_parser dp);
+parser* choice(parser* a, parser* b);
+parser* symbol(char sym);
+parser* oneof(char* list);
+parser* parser_new(static_context* sc, dynamic_parser_closure* dpc);
+void parser_delete(parser* p);
+char* char_to_ptr(char a);
+char ptr_to_char(char* a);
+int ptr_to_int(int* a);
+int* int_to_ptr(int a);
 #endif

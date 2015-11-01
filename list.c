@@ -1,24 +1,31 @@
 #include "list.h"
+#include <memory.h>
+#include <stdlib.h>
+
+
 
 list* list_new() {
-  list* l = (list *) calloc(sizeof(list));
+  list* l = (list *) calloc(1, sizeof(list));
   return l;
 }
 
 list* list_new_with_tag(tag_t tag) {
   list* l = list_new();
-  l.tag = tag;
+  l->tag = tag;
+  return l;
 }
 
-list* list_push_back_with_tag(list* l, void* item, tag_t tag) {
+
+
+void list_push_back_with_tag(list* l, void* item, tag_t tag) {
   if(l->tail == NULL) {
-    l->head = l->tail = (list *) calloc(sizeof(list_item));
+    l->head = l->tail = (list_item *) calloc(1, sizeof(list_item));
     l->tail->item = item;
     l->tail->tag = tag;
   }
   else {
     list_item* tail = l->tail;
-    tail->next = (list *) calloc(sizeof(list_item));
+    tail->next = (list_item *) calloc(1, sizeof(list_item));
     tail->next->prev = tail;
     tail->next->item = item;
     tail->next->tag = tag;
@@ -58,7 +65,7 @@ list* list_copy(list* l) {
   list* new_list = list_new();
   list_item* head = l->head;
   while(head) {
-    new_list.push_back(head->item);
+    list_push_back_with_tag(new_list, head->item, head->tag);
     head = head->next;
   }
   return new_list;
@@ -66,11 +73,11 @@ list* list_copy(list* l) {
 
 void list_delete(list* l) {
   if(l) {
-    list_item* list_item = l->head;
-    while(list_item) {
-      list_item* next = list_item->next;
-      free(list_item);
-      list_item = next;
+    list_item* item = l->head;
+    while(item) {
+      list_item* next = item->next;
+      free(item);
+      item = next;
     }
     free(l);
   }
