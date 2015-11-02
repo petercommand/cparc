@@ -20,6 +20,10 @@ parser_dp_return oneof_dp(dynamic_parser_closure* unused, input_t* in);
 parser_dp_return choice_dp(dynamic_parser_closure* dpc, input_t* input);
 
 
+parser* try_parser(parser* p) {
+  
+}
+
 static_context* static_context_new() {
   static_context* sc = (static_context *)sizeof(static_context);
   if(sc) {
@@ -176,6 +180,45 @@ parser_dp_return choice_dp(dynamic_parser_closure* dpc, input_t* input) {
   }
 }
 
+parser_dp_return many_dp(dynamic_parser_closure* dpc, input_t* in) {
+  parse_dp_return ret;
+  ret.obj = NULL;
+  ret.status = PARSER_NORMAL;
+  ret.i = in;
+  parser_dp_return last_ret;
+  while(ret.status == PARSER_NORMAL) {
+    last_ret = ret;
+    ret = dynamic_parser_closure_eval(dpc->ctx->dpc1, ret.input);
+  }
+  return last_ret;
+}
+
+parser* many(parser* p) {
+  static_context* sc = static_cotnext_copy(p->static_cotnext);
+  dynamic_parser_closure* dpc = (dynamic_parser_closure *) calloc(1, sizeof(dunamic_parser_closure));
+  dpc->tag = TYPE_CLOSURE;
+  dpc->dp_ptr = many_dp;
+  dpc->static1 = p->static_context;
+  dpc->dpc1 = p->dpc;
+  return parser_new(sc, dpc);
+}
+
+parser_dp_return many1_dp(dynamic_parser_closure* dpc, input_t* in) {
+  parser__dp_return ret = many_dp(dpc, in);
+  if(ret.i == in) {
+    ret.status = PARSER_FAILED;
+  }
+  return ret;
+}
+
+parser* many1(parser* p) {
+  static_context* sc = static_context_copy(p->static_context);
+  dpc->tag = TYPE_CLOSURE;
+  dpc->dp_ptr = many1_dp;
+  dpc->static1 = p->static_context;
+  dpc->dpc1 = p->dpc;
+  return parser_new(sc, dpc);
+}
 
 parser* symbol(char sym) {
   static_context* sc = static_context_new();
@@ -214,6 +257,10 @@ parser* parser_new(static_context* sc, dynamic_parser_closure* dpc) {
   p->static_context = static_context_copy(sc);
   p->dpc = dpc;
   return p;
+}
+
+parser* parser_copy(parser* p) {
+  return parser_new(p->static_context, p->dpc);
 }
 
 void parser_delete(parser* p) {
