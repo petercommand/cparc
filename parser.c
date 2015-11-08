@@ -21,7 +21,9 @@ parser_dp_return choice_dp(dynamic_parser_closure* dpc, input_t* input);
 
 
 parser* try_parser(parser* p) {
-  
+  //does not produce a new parser, instead, try_parser transforms existing parser into a parser that can fail
+  p->static_context->can_fail = true;
+  return p;
 }
 
 static_context* static_context_new() {
@@ -29,21 +31,55 @@ static_context* static_context_new() {
   if(sc) {
     sc->list = list_new();
     sc->allow_empty = false;
+    sc->ref_count = 1;
   }
   return sc;
 }
 
 void static_context_delete(static_context* sc) {
-  if(sc) {
-    list_delete(sc->list);
-    free(sc);
+  if(sc && sc->ref_count > 0) {
+    sc->ref_count--;
+    if(!sc->ref_count) {
+      list_delete(sc->list);
+      free(sc);
+    }
+  }
+}
+
+closure_ctx* closure_ctx_new(static_context* sc, dynamic_parser_closure* dpc) {
+  closure_ctx* ctx = (closure_ctx *) malloc(sizeof(closure_ctx));
+  ctx->sc = sc;
+  ctx->dpc = dpc;
+  return ctx;
+}
+
+void closure_ctx_delete(closure_ctx* ctx) {
+  free(ctx);
+}
+
+dynamic_parser_closure* dynamic_parser_closure_new(closure_ctx** ctxes, dynamic_parser dp_ptr) {
+  dynamic_parser_closure* dpc = (dynamic_parser_closure *) calloc(1, sizeof(dynamic_parser_closurfe));
+  dpc->ctxes = ctxes;
+  dpc->dp_ptr = dp_ptr;
+  return dpc;
+}
+
+void dynamic_parser_closure_delete(dynamic_parser_closure* dpc) {
+  if(dpc && dpc->ref_count > 0) {
+    dpc->ref_count--;
+    if(!dpc->ref_count) {
+      for(int i = 0;dpc->ctxes[i] != 0;i++) {
+	static_context_delete(dpc->ctxes[i]->sc);
+	dynamic_parser_closure_delete(dpc->ctxes[i]->dpc);
+      }
+      free(dpc);
+    }
   }
 }
 
 void static_context_add(static_context* sc, void* item, tag_t tag) {
   list_push_back_with_tag(sc->list, item, tag);
 }
-
 
 static_context* static_context_copy(static_context* sc) {
   static_context* new_sc = static_context_new();
@@ -63,8 +99,22 @@ static_context* static_context_from_list(list* list, bool allow_empty) {
   return sc;
 }
 
-bool match_range_criteria(void* elem, input_t* i) {
-  
+bool match_range_criteria(range_criteria* elem, input_t* i) {
+  list_item* range = elem->range->head;
+  for(int j = 0;j < elem->num;j++) {
+    char current = i->input[i->cursor + j];
+    if(current != '\0') {
+      range_item ri = range->item;
+      if(!((current >= range->lower_bound) && (current <= range->upper_bound))) {
+	return false;
+      }
+      range = range->next;
+    }
+    else {
+      return false;
+    }
+  }
+  return true;
 }
 
 bool match_char_criteria(char* elem, input_t* i) {
@@ -88,7 +138,7 @@ bool match_static_criteria(tag_t tag, void* elem, input_t* i) {
     return match_str_criteria(elem, i);
   default:
     return false;//unrecognized tag
-  } 
+  }
 }
 
 bool static_match(static_context* sc, input_t* i) {
@@ -133,15 +183,19 @@ parser_dp_return parse(parser* p, input_t* i) {
   }
 }
 
-dynamic_parser_closure* generic_dpc(static_context* static_a, dynamic_parser_closure* dpc_a, static_context* static_b, dynamic_parser_closure* dpc_b, dynamic_parser dp) {
-  dynamic_parser_closure* dpc = (dynamic_parser_closure *) calloc(1, sizeof(dynamic_parser_closure));
-  dpc->tag = TYPE_CLOSURE;
-  dpc->ctx->static1 = static_context_copy(static_a);
-  dpc->ctx->dpc1 = dpc_a;
-  dpc->ctx->static2 = static_context_copy(static_b);
-  dpc->ctx->dpc2 = dpc_b;
-  dpc->dp_ptr = dp;
-  return dpc;
+dynamic_parser_closure* generic_dpc(dynamic_parser dp, size_t size, ...) {
+  va_list argp;
+  va_start(argp, size);
+  closure_ctx* ctx;
+  closure_ctx** ctxes = (closure_ctx **) calloc(size + 1, sizeof(closure_ctx *));
+  int i = 0;
+  while(ctx = va_arg(size, closure_ctx *)) {
+    ctxes[i] = ctx;
+    i++;
+  }
+  ctxes[i] = 0;
+  va_end(argp);
+  return dynamic_parser_closure_new(ctxes, dp);
 }
 
 parser* choice(parser* a, parser* b) {
@@ -151,27 +205,30 @@ parser* choice(parser* a, parser* b) {
   list_append(sc->list, a->static_context->list);
   list_append(sc->list, b->static_context->list);
   sc->allow_empty = a->static_context->allow_empty || b->static_context->allow_empty;
-  dynamic_parser_closure* dpc = generic_dpc(a->static_context, a->dpc, b->static_context, b->dpc, choice_dp);
+
+  closure_ctx* ctx1 = closure_ctx_new(a->static_context, a->dpc);
+  closure_ctx* ctx2 = closure_ctx_new(b->static_context, b->dpc);
+  dynamic_parser_closure* dpc = generic_dpc(choice_dp, 2, ctx1, ctx2);
   return parser_new(sc, dpc);
 }
 
 parser_dp_return choice_dp(dynamic_parser_closure* dpc, input_t* input) {
-  if(input_peek(input) == '\0') {
+  if(input_peek(input) == '\0') {//empty input
     if(dpc->ctx->static1->allow_empty) {
-      return dynamic_parser_closure_eval(dpc->ctx->dpc1, input);
+      return dynamic_parser_closure_eval(dpc->ctxes[0]->dpc, input);
     }
     else {
-      return dynamic_parser_closure_eval(dpc->ctx->dpc2, input);
+      return dynamic_parser_closure_eval(dpc->ctxes[1]->dpc, input);
     }
   }
   else {//nonempty input
-    parser_dp_return result1 = dynamic_parser_closure_eval(dpc->ctx->dpc1, input);
+    parser_dp_return result1 = dynamic_parser_closure_eval(dpc->ctxes[0]->dpc, input);
     if(result1.status == PARSER_NORMAL) {//successful parse
       return result1;
     }
     else {//failed parse
       if(dpc->ctx->static1->can_fail) {//failed parse, try second parser
-	return dynamic_parser_closure_eval(dpc->ctx->dpc2, input);
+	return dynamic_parser_closure_eval(dpc->ctxes[1]->dpc, input);
       }
       else {
 	return result1;
@@ -194,25 +251,21 @@ parser_dp_return many_dp(dynamic_parser_closure* dpc, input_t* in) {
 }
 
 parser* many(parser* p) {
-  static_context* sc = static_cotnext_copy(p->static_cotnext);
-  dynamic_parser_closure* dpc = (dynamic_parser_closure *) calloc(1, sizeof(dunamic_parser_closure));
-  dpc->tag = TYPE_CLOSURE;
-  dpc->dp_ptr = many_dp;
-  dpc->static1 = p->static_context;
-  dpc->dpc1 = p->dpc;
-  return parser_new(sc, dpc);
+  closure_ctx* ctx1 = closure_ctx_new(p->static_context, p->dpc);
+  dynamic_parser_closure* dpc = dynamic_parser_closure_new(many_dp, 1, ctx1);
+  
+  return parser_new(p->sc, dpc);
 }
 
 parser_dp_return many1_dp(dynamic_parser_closure* dpc, input_t* in) {
-  parser__dp_return ret = many_dp(dpc, in);
+  parser_dp_return ret = many_dp(dpc, in);
   if(ret.i == in) {
     ret.status = PARSER_FAILED;
   }
   return ret;
 }
 
-parser* many1(parser* p) {
-  static_context* sc = static_context_copy(p->static_context);
+parser* many1(parser* p) {  
   dpc->tag = TYPE_CLOSURE;
   dpc->dp_ptr = many1_dp;
   dpc->static1 = p->static_context;
@@ -235,11 +288,8 @@ parser* oneof(char* list) {
     static_context_add(sc, elem, ELEM_CHAR);
     list++;
   }
-  dynamic_parser_closure* dpc = (dynamic_parser_closure *) calloc(1, sizeof(dynamic_parser_closure));
-  dpc->tag = TYPE_FUNC_PTR;
-  dpc->dp_ptr = oneof_dp;
+  dynamic_parser_closure* dpc = dynamic_parser_closure_new(oneof_dp, 0);
   parser* p = parser_new(sc, dpc);
-  free(sc);
   return p;
 }
 
@@ -254,8 +304,10 @@ parser_dp_return oneof_dp(dynamic_parser_closure* unused, input_t* in) {
 parser* parser_new(static_context* sc, dynamic_parser_closure* dpc) {
   parser* p = (parser *)calloc(1, sizeof(parser));
   p->status = PARSER_NORMAL;
-  p->static_context = static_context_copy(sc);
+  p->static_context = sc;
+  p->static_contxt->ref_count = 1;
   p->dpc = dpc;
+  p->dpc->ref_count++;
   return p;
 }
 
@@ -264,9 +316,9 @@ parser* parser_copy(parser* p) {
 }
 
 void parser_delete(parser* p) {
-  //TODO: implement ref count to delete static_context and 
-  //list_delete(p->static_context);
-  //free(p->dpc);
+  //TODO: implement ref count to delete static_context and dpc
+  static_context_delete(p->static_context);
+  dynamic_closure_delete(p->dpc);
   free(p);
 }
 

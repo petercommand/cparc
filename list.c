@@ -18,6 +18,7 @@ list* list_new_with_tag(tag_t tag) {
 
 
 void list_push_back_with_tag(list* l, void* item, tag_t tag) {
+  l->size++;
   if(l->tail == NULL) {
     l->head = l->tail = (list_item *) calloc(1, sizeof(list_item));
     l->tail->item = item;
@@ -49,20 +50,26 @@ void* list_peek_back(list* l) {
 }
 
 void* list_pop_back(list* l) {
-  if(l && l->tail) {
-    list_item* tail = l->tail;
-    void* item = tail->item;
-    l->tail = l->tail->prev;
-    l->tail->next = NULL;
-    free(tail);
-    return item;
+  if(l) {
+    if(l->tail) {
+      l->size--;
+      list_item* tail = l->tail;
+      void* item = tail->item;
+      l->tail = l->tail->prev;
+      l->tail->next = NULL;
+      free(tail);
+      return item;
+    }
+    else {
+      return null;
+    }
   }
   return NULL;
 }
 
 list* list_copy(list* l) {
   //return a copy of the list
-  list* new_list = list_new();
+  list* new_list = list_new_with_tag(l->tag);
   list_item* head = l->head;
   while(head) {
     list_push_back_with_tag(new_list, head->item, head->tag);

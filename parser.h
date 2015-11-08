@@ -26,6 +26,7 @@ typedef struct {
   bool allow_empty;
   bool can_fail;
   list* list;
+  size_t ref_count;
 } static_context;
 
 struct dynamic_parser_closure;
@@ -38,22 +39,20 @@ typedef struct {
   input_t* i; //remaining input
 } parser_dp_return;
 
-
-
 typedef struct {
-  static_context* static1;
-  dynamic_parser_closure* dpc1;
-  static_context* static2;
-  dynamic_parser_closure* dpc2;
+  static_context* sc;
+  dynamic_parser_closure* dpc;
 } closure_ctx;
+
 typedef parser_dp_return (*dynamic_parser)(dynamic_parser_closure* ctx, input_t*);
 
 typedef struct dynamic_parser_closure {
   tag_t tag;//closure type
   union {
-    closure_ctx* ctx;//a pair of static & dynamic context
+    closure_ctx** ctxes;//a pair of static & dynamic context
   };
   dynamic_parser dp_ptr;
+  size_t ref_count;
 } dynamic_parser_closure;
 
 
@@ -67,7 +66,15 @@ typedef struct {
   dynamic_parser_closure* dpc;
 } parser;
 
+typedef struct {
+  int lower_bound;
+  int uppder_bound;
+} range_item;
 
+typedef struct {
+  int num; //how many chars to compare
+  list* range;
+} range_criteria;
 
 
 enum {

@@ -15,6 +15,7 @@ typedef struct {
   list_item* head;
   list_item* tail;
   tag_t tag;
+  size_t size;
 } list;
 
 list* list_new();
