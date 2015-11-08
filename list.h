@@ -1,6 +1,6 @@
 #ifndef LIST_H
 #define LIST_H
-
+#include <stddef.h>
 typedef int tag_t;
 struct list_item;
 typedef struct list_item list_item;

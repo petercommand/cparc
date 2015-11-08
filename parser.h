@@ -3,7 +3,7 @@
 
 #include "input.h"
 #include "list.h"
-
+#include <stddef.h>
 #include <stdbool.h>
 /*
   parser is the main struct of any parser,
@@ -62,13 +62,13 @@ typedef struct dynamic_parser_closure {
 typedef struct {
   parser_status status;
   char* error_msg;
-  static_context* static_context;
+  static_context* sc;
   dynamic_parser_closure* dpc;
 } parser;
 
 typedef struct {
   int lower_bound;
-  int uppder_bound;
+  int upper_bound;
 } range_item;
 
 typedef struct {
@@ -92,7 +92,8 @@ static_context* static_context_from_list(list* list, bool allow_empty);
 bool static_match(static_context* sc, input_t* i);
 parser_dp_return dynamic_parser_closure_eval(dynamic_parser_closure* closure, input_t* input);
 parser_dp_return parse(parser* p, input_t* i);
-dynamic_parser_closure* generic_dpc(static_context* static_a, dynamic_parser_closure* dpc_a, static_context* static_b, dynamic_parser_closure* dpc_b, dynamic_parser dp);
+dynamic_parser_closure* dynamic_parser_closure_new(dynamic_parser dp, size_t size, ...);
+void dynamic_parser_closure_delete(dynamic_parser_closure* dpc);
 parser* choice(parser* a, parser* b);
 parser* symbol(char sym);
 parser* oneof(char* list);

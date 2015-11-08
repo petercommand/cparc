@@ -61,7 +61,7 @@ void* list_pop_back(list* l) {
       return item;
     }
     else {
-      return null;
+      return NULL;
     }
   }
   return NULL;
