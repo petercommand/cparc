@@ -83,7 +83,7 @@ enum {
   ELEM_STR
 } STATIC_PARSER_ELEM_TYPE;
 
-
+parser* try_parser(parser* p);
 static_context* static_context_new();
 void static_context_delete(static_context* sc);
 void static_context_add(static_context* sc, void* item, tag_t tag);
@@ -102,6 +102,7 @@ parser* choice(parser* a, parser* b);
 parser* symbol(char sym);
 parser* oneof(char* list);
 parser* many(parser* p);
+parser* many1(parser* p);
 parser* parser_new(static_context* sc, dynamic_parser_closure* dpc);
 void parser_delete(parser* p);
 char* char_to_ptr(char a);
