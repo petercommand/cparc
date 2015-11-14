@@ -154,7 +154,7 @@ parser_dp_return test_parser6_iff_dp(dynamic_parser_closure* ctx, input_t input)
 }
 
 bool test_parser6() {
-  //here we present two cases that is no mutually exclusive to test the parser
+  //here we present two cases that is not mutually exclusive to test the parser
   static_context* if_sc = static_context_new();
   static_context_add(if_sc, "if", ELEM_STR);
   dynamic_parser_closure* if_dpc = dynamic_parser_closure_new(test_parser6_if_dp, 0);
