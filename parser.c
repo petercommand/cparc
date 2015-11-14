@@ -294,9 +294,20 @@ parser* many1(parser* p) {
   return parser_new(p->sc, dpc);
 }
 
+parser_dp_return symbol_dp(dynamic_parser_closure* dpc, input_t in) {
+  parser_dp_return ret;
+  ret.i = input_next(in);
+  ret.status = PARSER_NORMAL;
+  ret.obj = char_to_ptr(input_peek(&in));
+  return ret;
+}
+
 parser* symbol(char sym) {
   static_context* sc = static_context_new();
   char* elem = char_to_ptr(sym);
+  static_context_add(sc, elem, ELEM_CHAR);
+  dynamic_parser_closure* dpc = dynamic_parser_closure_new(symbol_dp, 0);
+  return parser_new(sc, dpc);
   //NOT FINISHED
 }
 
