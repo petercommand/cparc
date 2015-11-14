@@ -269,8 +269,10 @@ parser_dp_return many_dp(dynamic_parser_closure* dpc, input_t in) {
   list* l = list_new();
   while(ret.status == PARSER_NORMAL) {
     last_ret = ret;
-    list_push_back(l, last_ret.obj);
     ret = parse1(dpc->ctxes[0]->sc, dpc->ctxes[0]->dpc, ret.i);
+    if(ret.status == PARSER_NORMAL) {
+      list_push_back(l, ret.obj);
+    }
   }
   last_ret.obj = l;
   return last_ret;
