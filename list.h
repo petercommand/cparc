@@ -20,6 +20,7 @@ typedef struct {
 
 list* list_new();
 list* list_new_with_tag(tag_t tag);
+void list_push_back(list* l, void* item);
 void list_push_back_with_tag(list* l, void* item, tag_t tag);
 void list_append(list* a, list* b);
 void* list_peek_back(list* l);
