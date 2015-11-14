@@ -16,5 +16,5 @@ test: $(OBJS)
 	$(CC) list.o input.o parser.o test_parser.o -o test_parser
 	./test_parser
 clean:
-	rm -f $(BIN) $(OBJS)
+	rm -f list.o input.o parser.o test_parser.o test_parser
 

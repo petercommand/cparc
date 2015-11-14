@@ -13,11 +13,11 @@ static inline void test_case(const char* test_name, TEST_FUNC func) {
   printf("Testing test case %s:...\n", test_name);
   bool result = func();
   if(result) {
-    printf("[Done]\n");
+    printf("[Test case %s Success]\n", test_name);
     total_success++;
   }
   else {
-    printf("[Error]\n");
+    printf("[Test case %s Error]\n", test_name);
     total_error++;
   }   
 }

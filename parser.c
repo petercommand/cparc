@@ -13,9 +13,9 @@
 static char char_to_ptr_mapping[256];
 static int int_to_ptr_mapping[INT_MAX];
 
-bool match_range_criteria(range_criteria* elem, input_t* i);
-bool match_char_criteria(char* elem, input_t* i);
-bool match_str_criteria(char* elem, input_t* i);
+bool match_range_criteria(range_criteria* elem, const input_t* i);
+bool match_char_criteria(char* elem, const input_t* i);
+bool match_str_criteria(char* elem, const input_t* i);
 parser_dp_return oneof_dp(dynamic_parser_closure* unused, input_t in);
 
 
@@ -111,7 +111,7 @@ static_context* static_context_from_list(list* list, bool allow_empty) {
   return sc;
 }
 
-bool match_range_criteria(range_criteria* elem, input_t* i) {
+bool match_range_criteria(range_criteria* elem, const input_t* i) {
   list_item* range = elem->range->head;
   for(int j = 0;j < elem->num;j++) {
     char current = i->input[i->cursor + j];
@@ -129,18 +129,30 @@ bool match_range_criteria(range_criteria* elem, input_t* i) {
   return true;
 }
 
-bool match_char_criteria(char* elem, input_t* i) {
+bool match_char_criteria(char* elem, const input_t* i) {
   if(input_peek(i) == ptr_to_char(elem)) {
     return true;
   }
   return false;
 }
 
-bool match_str_criteria(char* elem, input_t* i) {
-  return !strcmp(elem, &(i->input[i->cursor]));
+bool match_str_criteria(char* elem, const input_t* i) {
+  size_t j = 0;
+  while(*elem != '\0') {
+    if(i->input[i->cursor + j] == '\0') {
+      return false;
+    }
+    if(*elem != i->input[i->cursor + j]) {
+      return false;
+    }
+    elem++;
+    j++;
+  }
+  return true;
+  //  return !strcmp(elem, &(i->input[i->cursor]));
 }
 
-bool match_static_criteria(tag_t tag, void* elem, input_t* i) {
+bool match_static_criteria(tag_t tag, void* elem, const input_t* i) {
   //this function checks whether the input matches the given static criteria
   switch(tag) {
   case ELEM_RANGE:
@@ -154,7 +166,7 @@ bool match_static_criteria(tag_t tag, void* elem, input_t* i) {
   }
 }
 
-bool static_match(static_context* sc, input_t* i) {
+bool static_match(static_context* sc, const input_t* i) {
   if(input_peek(i) == '\0' && sc->allow_empty) {
     return true;
   }
@@ -177,8 +189,11 @@ parser_dp_return dynamic_parser_closure_eval(dynamic_parser_closure* closure, in
   return closure->dp_ptr(closure, input);
 }
 parser_dp_return parse(parser* p, input_t i) {
-  if(static_match(p->sc, &i)) {
-    return dynamic_parser_closure_eval(p->dpc, i);
+  return parse1(p->sc, p->dpc, i);
+}
+parser_dp_return parse1(static_context* sc, dynamic_parser_closure* dpc, input_t i) {
+  if(static_match(sc, &i)) {
+    return dynamic_parser_closure_eval(dpc, i);
   }
   else {
     parser_dp_return failed;
@@ -195,7 +210,7 @@ dynamic_parser_closure* dynamic_parser_closure_new(dynamic_parser dp, size_t siz
   closure_ctx* ctx;
   closure_ctx** ctxes = (closure_ctx **) calloc(size + 1, sizeof(closure_ctx *));
   int i = 0;
-  while((ctx = va_arg(argp, closure_ctx *))) {
+  while((ctx = va_arg(argp, closure_ctx *)) && i < size) {
     ctx->ref_count++;
     ctxes[i] = ctx;
     i++;
@@ -252,15 +267,17 @@ parser_dp_return many_dp(dynamic_parser_closure* dpc, input_t in) {
   parser_dp_return last_ret;
   while(ret.status == PARSER_NORMAL) {
     last_ret = ret;
-    ret = dynamic_parser_closure_eval(dpc->ctxes[0]->dpc, ret.i);
+    ret = parse1(dpc->ctxes[0]->sc, dpc->ctxes[0]->dpc, ret.i);
   }
   return last_ret;
 }
 
 parser* many(parser* p) {
+  static_context* sc = static_context_copy(p->sc);
+  sc->allow_empty = true;
   closure_ctx* ctx1 = closure_ctx_new(p->sc, p->dpc);
   dynamic_parser_closure* dpc = dynamic_parser_closure_new(many_dp, 1, ctx1);  
-  return parser_new(p->sc, dpc);
+  return parser_new(sc, dpc);
 }
 
 parser_dp_return many1_dp(dynamic_parser_closure* dpc, input_t in) {
@@ -271,7 +288,7 @@ parser_dp_return many1_dp(dynamic_parser_closure* dpc, input_t in) {
   return ret;
 }
 
-parser* many1(parser* p) {  
+parser* many1(parser* p) {
   closure_ctx* ctx1 = closure_ctx_new(p->sc, p->dpc);
   dynamic_parser_closure* dpc = dynamic_parser_closure_new(many1_dp, 1, ctx1);
   return parser_new(p->sc, dpc);
@@ -308,7 +325,6 @@ parser_dp_return oneof_dp(dynamic_parser_closure* unused, input_t in) {
 //do not change static_context or dyamic_parser_closure after parser_new since it shares them btw parsers
 parser* parser_new(static_context* sc, dynamic_parser_closure* dpc) {
   parser* p = (parser *)calloc(1, sizeof(parser));
-  p->status = PARSER_NORMAL;
   p->sc = sc;
   p->sc->ref_count++;
   p->dpc = dpc;
