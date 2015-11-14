@@ -16,7 +16,6 @@ list* list_new_with_tag(tag_t tag) {
 }
 
 
-
 void list_push_back_with_tag(list* l, void* item, tag_t tag) {
   l->size++;
   if(l->tail == NULL) {
@@ -31,6 +30,10 @@ void list_push_back_with_tag(list* l, void* item, tag_t tag) {
     tail->next->item = item;
     tail->next->tag = tag;
  }
+}
+
+void list_push_back(list* l, void* item) {
+  list_push_back_with_tag(l, item, 0);
 }
 
 void list_append(list* a, list* b) {
