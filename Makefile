@@ -13,7 +13,7 @@ all: $(BIN)
 #main: $(OBJS)
 #	$(CC) $(LDFLAGS) -o $@ $^
 test: $(OBJS)
-	$(CC) list.o input.o parser.o test_parser.o -o test_parser
+	$(CC) test_parser.o list.o input.o parser.o -o test_parser
 	./test_parser
 clean:
 	rm -f list.o input.o parser.o test_parser.o test_parser
