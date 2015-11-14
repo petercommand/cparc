@@ -349,7 +349,6 @@ parser* parser_copy(parser* p) {
 }
 
 void parser_delete(parser* p) {
-  //TODO: implement ref count to delete static_context and dpc
   static_context_delete(p->sc);
   dynamic_parser_closure_delete(p->dpc);
   free(p);
