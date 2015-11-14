@@ -205,7 +205,7 @@ dynamic_parser_closure* dynamic_parser_closure_new(dynamic_parser dp, size_t siz
   va_start(argp, size);
   closure_ctx* ctx;
   closure_ctx** ctxes = (closure_ctx **) calloc(size + 1, sizeof(closure_ctx *));
-  int i = 0;
+  size_t i = 0;
   while((ctx = va_arg(argp, closure_ctx *)) && i < size) {
     ctx->ref_count++;
     ctxes[i] = ctx;
