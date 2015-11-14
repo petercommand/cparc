@@ -36,15 +36,16 @@ typedef struct dynamic_parser_closure dynamic_parser_closure;
 typedef struct {
   void* obj;
   parser_status status;
-  input_t* i; //remaining input
+  input_t i; //remaining input
 } parser_dp_return;
 
 typedef struct {
   static_context* sc;
   dynamic_parser_closure* dpc;
+  size_t ref_count;
 } closure_ctx;
 
-typedef parser_dp_return (*dynamic_parser)(dynamic_parser_closure* ctx, input_t*);
+typedef parser_dp_return (*dynamic_parser)(dynamic_parser_closure* ctx, input_t in);
 
 typedef struct dynamic_parser_closure {
   tag_t tag;//closure type
@@ -90,8 +91,8 @@ void static_context_add(static_context* sc, void* item, tag_t tag);
 static_context* static_context_copy(static_context* sc);
 static_context* static_context_from_list(list* list, bool allow_empty);
 bool static_match(static_context* sc, input_t* i);
-parser_dp_return dynamic_parser_closure_eval(dynamic_parser_closure* closure, input_t* input);
-parser_dp_return parse(parser* p, input_t* i);
+parser_dp_return dynamic_parser_closure_eval(dynamic_parser_closure* closure, input_t input);
+parser_dp_return parse(parser* p, input_t i);
 dynamic_parser_closure* dynamic_parser_closure_new(dynamic_parser dp, size_t size, ...);
 void dynamic_parser_closure_delete(dynamic_parser_closure* dpc);
 parser* choice(parser* a, parser* b);

@@ -16,10 +16,10 @@ static int int_to_ptr_mapping[INT_MAX];
 bool match_range_criteria(range_criteria* elem, input_t* i);
 bool match_char_criteria(char* elem, input_t* i);
 bool match_str_criteria(char* elem, input_t* i);
-parser_dp_return oneof_dp(dynamic_parser_closure* unused, input_t* in);
+parser_dp_return oneof_dp(dynamic_parser_closure* unused, input_t in);
 
 
-parser_dp_return choice_dp(dynamic_parser_closure* dpc, input_t* input);
+parser_dp_return choice_dp(dynamic_parser_closure* dpc, input_t input);
 
 
 parser* try_parser(parser* p) {
@@ -30,11 +30,11 @@ parser* try_parser(parser* p) {
 
 
 static_context* static_context_new() {
-  static_context* sc = (static_context *)sizeof(static_context);
+  static_context* sc = (static_context *)malloc(sizeof(static_context));
   if(sc) {
     sc->list = list_new();
     sc->allow_empty = false;
-    sc->ref_count = 1;
+    sc->ref_count = 0;
   }
   return sc;
 }
@@ -52,18 +52,27 @@ void static_context_delete(static_context* sc) {
 closure_ctx* closure_ctx_new(static_context* sc, dynamic_parser_closure* dpc) {
   closure_ctx* ctx = (closure_ctx *) malloc(sizeof(closure_ctx));
   ctx->sc = sc;
+  sc->ref_count++;
   ctx->dpc = dpc;
+  dpc->ref_count++;
+  ctx->ref_count = 0;
   return ctx;
 }
 
 void closure_ctx_delete(closure_ctx* ctx) {
-  free(ctx);
+  ctx->ref_count--;
+  if(!ctx->ref_count) {
+    static_context_delete(ctx->sc);
+    dynamic_parser_closure_delete(ctx->dpc);
+    free(ctx);
+  }
 }
 
 dynamic_parser_closure* dynamic_parser_closure_new_p(closure_ctx** ctxes, dynamic_parser dp_ptr) {
   dynamic_parser_closure* dpc = (dynamic_parser_closure *) calloc(1, sizeof(dynamic_parser_closure));
   dpc->ctxes = ctxes;
   dpc->dp_ptr = dp_ptr;
+  dpc->ref_count = 0;
   return dpc;
 }
 
@@ -157,17 +166,18 @@ bool static_match(static_context* sc, input_t* i) {
     if(match_static_criteria(head->tag, head->item, i)) {
       return true;
     }
+    head = head->next;
   }
   return false;
 }
 
   
 
-parser_dp_return dynamic_parser_closure_eval(dynamic_parser_closure* closure, input_t* input) {
+parser_dp_return dynamic_parser_closure_eval(dynamic_parser_closure* closure, input_t input) {
   return closure->dp_ptr(closure, input);
 }
-parser_dp_return parse(parser* p, input_t* i) {
-  if(static_match(p->sc, i)) {
+parser_dp_return parse(parser* p, input_t i) {
+  if(static_match(p->sc, &i)) {
     return dynamic_parser_closure_eval(p->dpc, i);
   }
   else {
@@ -186,6 +196,7 @@ dynamic_parser_closure* dynamic_parser_closure_new(dynamic_parser dp, size_t siz
   closure_ctx** ctxes = (closure_ctx **) calloc(size + 1, sizeof(closure_ctx *));
   int i = 0;
   while((ctx = va_arg(argp, closure_ctx *))) {
+    ctx->ref_count++;
     ctxes[i] = ctx;
     i++;
   }
@@ -208,8 +219,8 @@ parser* choice(parser* a, parser* b) {
   return parser_new(sc, dpc);
 }
 
-parser_dp_return choice_dp(dynamic_parser_closure* dpc, input_t* input) {
-  if(input_peek(input) == '\0') {//empty input
+parser_dp_return choice_dp(dynamic_parser_closure* dpc, input_t input) {
+  if(input_peek(&input) == '\0') {//empty input
     if(dpc->ctxes[0]->sc->allow_empty) {
       return dynamic_parser_closure_eval(dpc->ctxes[0]->dpc, input);
     }
@@ -233,7 +244,7 @@ parser_dp_return choice_dp(dynamic_parser_closure* dpc, input_t* input) {
   }
 }
 
-parser_dp_return many_dp(dynamic_parser_closure* dpc, input_t* in) {
+parser_dp_return many_dp(dynamic_parser_closure* dpc, input_t in) {
   parser_dp_return ret;
   ret.obj = NULL;
   ret.status = PARSER_NORMAL;
@@ -252,9 +263,9 @@ parser* many(parser* p) {
   return parser_new(p->sc, dpc);
 }
 
-parser_dp_return many1_dp(dynamic_parser_closure* dpc, input_t* in) {
+parser_dp_return many1_dp(dynamic_parser_closure* dpc, input_t in) {
   parser_dp_return ret = many_dp(dpc, in);
-  if(ret.i == in) {
+  if(!input_cmp(&ret.i, &in)) {
     ret.status = PARSER_FAILED;
   }
   return ret;
@@ -286,10 +297,10 @@ parser* oneof(char* list) {
   return p;
 }
 
-parser_dp_return oneof_dp(dynamic_parser_closure* unused, input_t* in) {
+parser_dp_return oneof_dp(dynamic_parser_closure* unused, input_t in) {
   //we know that the parse always succeed since it has passed the static parser
   parser_dp_return ret;
-  ret.obj = char_to_ptr(in->input[in->cursor]);
+  ret.obj = char_to_ptr(input_peek(&in));
   ret.i = input_next(in);
   return ret;
 }
