@@ -9,7 +9,7 @@ static int total_error = 0;
 typedef bool (* TEST_FUNC)();
 //typedef void (* TEST_CASE_FUNC)(const char* test_name, TEST_FUNC f);
 
-static void test_case(const char* test_name, TEST_FUNC func) {
+static inline void test_case(const char* test_name, TEST_FUNC func) {
   printf("Testing test case %s:...\n", test_name);
   bool result = func();
   if(result) {
@@ -22,7 +22,7 @@ static void test_case(const char* test_name, TEST_FUNC func) {
   }   
 }
 
-static void test_true_imp(bool* result, bool in, const char* file, int line) {
+static inline void test_true_imp(bool* result, bool in, const char* file, int line) {
   if(!in) {
     printf("test_true failed at file: %s line: %d\n", file, line);
     *result = false;
