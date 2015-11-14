@@ -276,7 +276,7 @@ parser* many(parser* p) {
   static_context* sc = static_context_copy(p->sc);
   sc->allow_empty = true;
   closure_ctx* ctx1 = closure_ctx_new(p->sc, p->dpc);
-  dynamic_parser_closure* dpc = dynamic_parser_closure_new(many_dp, 1, ctx1);  
+  dynamic_parser_closure* dpc = dynamic_parser_closure_new(many_dp, 1, ctx1);
   return parser_new(sc, dpc);
 }
 
@@ -308,7 +308,6 @@ parser* symbol(char sym) {
   static_context_add(sc, elem, ELEM_CHAR);
   dynamic_parser_closure* dpc = dynamic_parser_closure_new(symbol_dp, 0);
   return parser_new(sc, dpc);
-  //NOT FINISHED
 }
 
 parser* oneof(char* list) {
