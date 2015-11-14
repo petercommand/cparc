@@ -13,9 +13,6 @@
 static char char_to_ptr_mapping[256];
 static int int_to_ptr_mapping[INT_MAX];
 
-bool match_range_criteria(range_criteria* elem, const input_t* i);
-bool match_char_criteria(char* elem, const input_t* i);
-bool match_str_criteria(char* elem, const input_t* i);
 parser_dp_return oneof_dp(dynamic_parser_closure* unused, input_t in);
 
 
@@ -149,7 +146,6 @@ bool match_str_criteria(char* elem, const input_t* i) {
     j++;
   }
   return true;
-  //  return !strcmp(elem, &(i->input[i->cursor]));
 }
 
 bool match_static_criteria(tag_t tag, void* elem, const input_t* i) {
