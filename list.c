@@ -41,7 +41,7 @@ void list_append(list* a, list* b) {
   list_item* head = b->head;
   while(head) {
     list_push_back_with_tag(a, head->item, head->tag);
-    head++;
+    head = head->next;
   }
 }
     
