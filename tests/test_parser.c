@@ -74,6 +74,7 @@ bool test_parser3() {
   test_true(&result, parse_result.status == PARSER_NORMAL);
   test_true(&result, !input_cmp(&parse_result.i, &i));
   test_true(&result, list_peek_back(parse_result.obj) == NULL);
+  list_delete(parse_result.obj);
   return result;
 }
 
