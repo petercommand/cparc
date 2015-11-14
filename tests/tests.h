@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
-
+#define test_true(x, y) test_true_imp(x, y, __FILE__, __LINE__)
 static int total_success = 0;
 static int total_error = 0;
 typedef bool (* TEST_FUNC)();
@@ -22,8 +22,9 @@ static inline void test_case(const char* test_name, TEST_FUNC func) {
   }   
 }
 
-static inline void test_true(bool* result, bool in) {
+static inline void test_true_imp(bool* result, bool in, const char*file, int line) {
   if(!in) {
+    printf("test_true failed at file: %s line: %d\n", file, line);
     *result = false;
   }
 }
