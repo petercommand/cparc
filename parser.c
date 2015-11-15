@@ -40,6 +40,13 @@ void static_context_delete(static_context* sc) {
   if(sc && sc->ref_count > 0) {
     sc->ref_count--;
     if(!sc->ref_count) {
+      list_item* head = sc->list->head;
+      while(head) {
+	if(head->tag == ELEM_RANGE) {
+	  range_criteria_delete(head->item);
+	}
+	head = head->next;
+      }
       list_delete(sc->list);
       free(sc);
     }
@@ -106,6 +113,21 @@ static_context* static_context_from_list(list* list, bool allow_empty) {
     sc->allow_empty = allow_empty;
   }
   return sc;
+}
+
+range_criteria* range_criteria_new(char lower_bound, char upper_bound) {
+  range_criteria* r = (range_criteria *)calloc(1, sizeof(range_criteria));
+  if(r) {
+    r->lower_bound = lower_bound;
+    r->upper_bound = upper_bound;
+  }
+  return r;
+}
+
+void range_criteria_delete(range_criteria* r) {
+  if(r) {
+    free(r);
+  }
 }
 
 bool match_range_criteria(range_criteria* elem, const input_t* i) {
@@ -230,6 +252,45 @@ parser* choice(parser* a, parser* b) {
   return parser_new(sc, dpc);
 }
 
+parser_dp_return then_dp(dynamic_parser_closure* dpc, input_t input) {
+  void* obj1;
+  void (*destroy_obj1_callback)(void *);
+  parser_dp_return result = dynamic_parser_closure_eval(dpc->ctxes[0]->dpc, input);
+  if(result.status == PARSER_NORMAL) {
+    obj1 = result.obj;
+    destroy_obj1_callback = result.destroy_obj_callback;
+    result = parse1(dpc->ctxes[1]->sc, dpc->ctxes[1]->dpc, result.i);
+    if(result.status == PARSER_NORMAL) {
+      list* l = list_new();
+      list_push_back(l, obj1);
+      list_push_back(l, result.obj);
+      result.obj = l;
+      result.destroy_obj_callback = list_delete;
+      return result;
+    }
+    else {
+      if(destroy_obj1_callback) {
+	destroy_obj1_callback(obj1);
+      }
+    }
+  }
+  result.status == PARSER_FAILED;
+  return result;
+}
+
+parser* then(parser* a, parser* b) {
+  //then operator
+  static_context* sc = static_context_new();
+  list_append(sc->list, a->sc->list);
+  list_append(sc->list, b->sc->list);
+  sc->allow_empty = a->sc->allow_empty && b->sc->allow_empty;
+  closure_ctx* ctx1 = closure_ctx_new(a->sc, a->dpc);
+  closure_ctx* ctx2 = closure_ctx_new(b->sc, b->dpc);
+  dynamic_parser_closure* dpc = dynamic_parser_closure_new(then_dp, 2, ctx1, ctx2);
+  return parser_new(sc, dpc);
+}
+    
+
 parser_dp_return choice_dp(dynamic_parser_closure* dpc, input_t input) {
   if(input_peek(&input) == '\0') {//empty input
     if(dpc->ctxes[0]->sc->allow_empty) {
@@ -333,8 +394,20 @@ parser* oneof(char* list) {
   return p;
 }
 
+parser_dp_return eof_dp(dynamic_parser_closure* dpc, input_t in) {
+  parser_dp_return dp_ret;
+  dp_ret.i = input_next(in);
+  dp_ret.status = PARSER_NORMAL;
+  dp_ret.destroy_obj_callback = NULL;
+  dp_ret.obj = NULL;
+  return dp_ret;
+}
+
 parser* eof() {
-  return symbol('\0');
+  static_context* sc = static_context_new();
+  static_context_add(sc, char_to_ptr('\0'), ELEM_CHAR);
+  dynamic_parser_closure* dpc = dynamic_parser_closure_new(eof_dp, 0);
+  return parser_new(sc, dpc);
 }
 parser_dp_return oneof_dp(dynamic_parser_closure* unused, input_t in) {
   //we know that the parse always succeed since it has passed the static parser
@@ -379,9 +452,9 @@ char ptr_to_char(char* a) {
 }
 
 int ptr_to_int(int* a) {
-  return (int)a;
+  return ((int)a) - 1;
 }
 
 int* int_to_ptr(int a) {
-  return (int *)a;
+  return (int *)(a + 1);
 }

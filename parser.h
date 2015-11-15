@@ -68,8 +68,8 @@ typedef struct {
 } parser;
 
 typedef struct {
-  int lower_bound;
-  int upper_bound;
+  char lower_bound;
+  char upper_bound;
 } range_item;
 
 typedef struct {
@@ -91,6 +91,8 @@ void static_context_add(static_context* sc, void* item, tag_t tag);
 static_context* static_context_copy(static_context* sc);
 static_context* static_context_from_list(list* list, bool allow_empty);
 bool static_match(static_context* sc, const input_t* i);
+range_criteria* range_criteria_new(char lower_bound, char upper_bound);
+void range_criteria_delete(range_criteria* r);
 parser_dp_return dynamic_parser_closure_eval(dynamic_parser_closure* closure, input_t input);
 parser_dp_return parse(parser* p, input_t i);
 parser_dp_return parse1(static_context* sc, dynamic_parser_closure* dpc, input_t i);
