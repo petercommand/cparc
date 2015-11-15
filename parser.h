@@ -37,6 +37,7 @@ typedef struct {
   void* obj;
   parser_status status;
   input_t i; //remaining input
+  void (*discard_obj_callback)(void* obj);
 } parser_dp_return;
 
 typedef struct {

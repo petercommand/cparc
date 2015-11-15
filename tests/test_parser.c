@@ -8,6 +8,7 @@ parser_dp_return test_parser1_dp(dynamic_parser_closure* ctx, input_t input) {
   dp_ret.obj = NULL;
   dp_ret.status = PARSER_NORMAL;
   dp_ret.i = input_forward(input, 5);
+  dp_ret.discard_obj_callback = NULL;
   return dp_ret;
 }
 bool test_parser1() {
@@ -33,6 +34,7 @@ parser_dp_return test_parser2_dp(dynamic_parser_closure* ctx, input_t input) {
   dp_ret.obj = NULL;
   dp_ret.status = PARSER_NORMAL;
   dp_ret.i = input_forward(input, 5);
+  dp_ret.discard_obj_callback = NULL;
   return dp_ret;
 }
 bool test_parser2() {
@@ -58,6 +60,7 @@ parser_dp_return test_parser3_dp(dynamic_parser_closure* ctx, input_t input) {
   dp_ret.obj = NULL;
   dp_ret.status = PARSER_NORMAL;
   dp_ret.i = input_forward(input, 2);
+  dp_ret.discard_obj_callback = NULL;
   return dp_ret;
 }
 bool test_parser3() {
@@ -84,6 +87,7 @@ parser_dp_return test_parser4_dp(dynamic_parser_closure* ctx, input_t input) {
   dp_ret.obj = "()";
   dp_ret.status = PARSER_NORMAL;
   dp_ret.i = input_forward(input, 2);
+  dp_ret.discard_obj_callback = NULL;
   return dp_ret;
 }
 bool test_parser4() {
@@ -120,6 +124,7 @@ parser_dp_return test_parser5_dp(dynamic_parser_closure* ctx, input_t input) {
     dp_ret.obj = NULL;
     dp_ret.i = input_forward(input, 1);
   }
+  dp_ret.discard_obj_callback = NULL;
   return dp_ret;
 }
 bool test_parser5() {
@@ -145,6 +150,7 @@ parser_dp_return test_parser6_if_dp(dynamic_parser_closure* ctx, input_t input) 
   dp_ret.status = PARSER_NORMAL;
   dp_ret.obj = NULL;
   dp_ret.i = input_forward(input, 2);
+  dp_ret.discard_obj_callback = NULL;
   return dp_ret;
 }
 
@@ -153,6 +159,7 @@ parser_dp_return test_parser6_iff_dp(dynamic_parser_closure* ctx, input_t input)
   dp_ret.status = PARSER_NORMAL;
   dp_ret.obj = NULL;
   dp_ret.i = input_forward(input, 3);
+  dp_ret.discard_obj_callback = NULL;
   return dp_ret;
 }
 

@@ -246,6 +246,10 @@ parser_dp_return choice_dp(dynamic_parser_closure* dpc, input_t input) {
     }
     else {//failed parse
       if(dpc->ctxes[0]->sc->can_fail) {//failed parse, try second parser
+	//we are discarding the first result, so we explicitly deallocate its result if discard_obj_callback is set
+	if(result1.discard_obj_callback && result1.obj) {
+	  result1.discard_obj_callback(result1.obj);
+	}
 	return dynamic_parser_closure_eval(dpc->ctxes[1]->dpc, input);
       }
       else {
@@ -261,6 +265,7 @@ parser_dp_return many_dp(dynamic_parser_closure* dpc, input_t in) {
   ret.obj = NULL;
   ret.status = PARSER_NORMAL;
   ret.i = in;
+  ret.discard_obj_callback = NULL;
   parser_dp_return last_ret;
   list* l = list_new();
   while(ret.status == PARSER_NORMAL) {
@@ -270,6 +275,7 @@ parser_dp_return many_dp(dynamic_parser_closure* dpc, input_t in) {
       list_push_back(l, ret.obj);
     }
   }
+  last_ret.discard_obj_callback = list_delete;
   last_ret.obj = l;
   return last_ret;
 }
@@ -301,6 +307,7 @@ parser_dp_return symbol_dp(dynamic_parser_closure* dpc, input_t in) {
   ret.i = input_next(in);
   ret.status = PARSER_NORMAL;
   ret.obj = char_to_ptr(input_peek(&in));
+  ret.discard_obj_callback = NULL;
   return ret;
 }
 
@@ -334,6 +341,8 @@ parser_dp_return oneof_dp(dynamic_parser_closure* unused, input_t in) {
   parser_dp_return ret;
   ret.obj = char_to_ptr(input_peek(&in));
   ret.i = input_next(in);
+  ret.status = PARSER_NORMAL;
+  ret.discard_obj_callback = NULL;
   return ret;
 }
 
