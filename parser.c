@@ -80,6 +80,7 @@ void dynamic_parser_closure_delete(dynamic_parser_closure* dpc) {
       for(int i = 0;dpc->ctxes[i] != 0;i++) {
 	closure_ctx_delete(dpc->ctxes[i]);
       }
+      free(dpc->ctxes);
       free(dpc);
     }
   }
