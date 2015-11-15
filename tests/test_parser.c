@@ -71,6 +71,7 @@ bool test_parser3() {
   parser* many_p = many(p);
   parser_dp_return parse_result = parse(many_p, i);
   parser_delete(p);
+  parser_delete(many_p);
   bool result = true;
   test_true(&result, parse_result.status == PARSER_NORMAL);
   test_true(&result, !input_cmp(&parse_result.i, &i));
