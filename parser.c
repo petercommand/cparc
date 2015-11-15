@@ -78,8 +78,7 @@ void dynamic_parser_closure_delete(dynamic_parser_closure* dpc) {
     dpc->ref_count--;
     if(!dpc->ref_count) {
       for(int i = 0;dpc->ctxes[i] != 0;i++) {
-	static_context_delete(dpc->ctxes[i]->sc);
-	dynamic_parser_closure_delete(dpc->ctxes[i]->dpc);
+	closure_ctx_delete(dpc->ctxes[i]);
       }
       free(dpc);
     }
@@ -326,6 +325,9 @@ parser* oneof(char* list) {
   return p;
 }
 
+parser* eof() {
+  return symbol('\0');
+}
 parser_dp_return oneof_dp(dynamic_parser_closure* unused, input_t in) {
   //we know that the parse always succeed since it has passed the static parser
   parser_dp_return ret;

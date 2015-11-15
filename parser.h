@@ -101,6 +101,7 @@ bool match_str_criteria(char* elem, const input_t* i);
 parser* choice(parser* a, parser* b);
 parser* symbol(char sym);
 parser* oneof(char* list);
+parser* eof();
 parser* many(parser* p);
 parser* many1(parser* p);
 parser* parser_new(static_context* sc, dynamic_parser_closure* dpc);
