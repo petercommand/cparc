@@ -97,6 +97,7 @@ bool test_parser4() {
   parser* many_p = many(p);
   parser_dp_return parse_result = parse(many_p, i);
   parser_delete(p);
+  parser_delete(many_p);
   bool result = true;
   test_true(&result, parse_result.status == PARSER_NORMAL);
   input_t expected_i = input_forward(i, 8);
@@ -132,6 +133,7 @@ bool test_parser5() {
   parser* many1_p = many1(p);
   parser_dp_return parse_result = parse(many1_p, i);
   parser_delete(p);
+  parser_delete(many1_p);
   bool result = true;
   test_true(&result, parse_result.status == PARSER_FAILED);
   list_delete(parse_result.obj);
