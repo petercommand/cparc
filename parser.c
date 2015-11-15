@@ -11,7 +11,7 @@
 #include "input.h"
 
 static char char_to_ptr_mapping[256];
-static int int_to_ptr_mapping[INT_MAX];
+static int* int_to_ptr_mapping = NULL;
 
 parser_dp_return oneof_dp(dynamic_parser_closure* unused, input_t in);
 
@@ -367,12 +367,9 @@ char ptr_to_char(char* a) {
 }
 
 int ptr_to_int(int* a) {
-  return *a;
+  return (int)a;
 }
 
 int* int_to_ptr(int a) {
-  if(!int_to_ptr_mapping[a]) {
-    int_to_ptr_mapping[a] = a;
-  }
-  return &int_to_ptr_mapping[a];
+  return (int *)a;
 }
