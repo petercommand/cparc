@@ -264,7 +264,7 @@ parser_dp_return test_parser7_expr_dp(dynamic_parser_closure* dpc, input_t input
   parser* remain = then(many1_next, spaces);//i
   parser* eof_parser = eof();
   parser* remain_eof = then(remain, eof_parser);
-  try_parser(remain_eof);
+i  try_parser(remain_eof);
   parser* final = choice(remain_eof, eof_parser);
   //free all parsers except final
   parser_delete(oper);
@@ -365,7 +365,6 @@ bool test_parser7() {
   parser_delete(p);
   bool result = true;
   test_true(&result, parse_result.status == PARSER_NORMAL);
-  list_delete(parse_result.obj);
   return result;
 }
 
