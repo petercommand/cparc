@@ -29,6 +29,7 @@ void list_push_back_with_tag(list* l, void* item, tag_t tag) {
     tail->next->prev = tail;
     tail->next->item = item;
     tail->next->tag = tag;
+    l->tail = tail->next;
  }
 }
 

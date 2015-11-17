@@ -323,7 +323,7 @@ parser_dp_return test_parser7_expr_dp(dynamic_parser_closure* dpc, input_t input
 bool test_parser7() {
 
   static_context* num_sc = static_context_new();
-  for(char i = '0';i < '9';i++) {
+  for(char i = '0';i <= '9';i++) {
     static_context_add(num_sc, char_to_ptr(i), ELEM_CHAR);
   }
   dynamic_parser_closure* num_dpc = dynamic_parser_closure_new(test_parser7_num_dp, 0);
