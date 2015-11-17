@@ -236,6 +236,7 @@ parser_dp_return test_parser7_num_dp(dynamic_parser_closure* ctx, input_t input)
   dp_ret.obj = int_to_ptr(result);
   dp_ret.status = PARSER_NORMAL;
   dp_ret.i = input;
+  dp_ret.discard_obj_callback = NULL;
   return dp_ret;
 }
 
@@ -244,6 +245,7 @@ parser_dp_return test_parser7_oper_dp(dynamic_parser_closure* ctx, input_t input
   dp_ret.obj = char_to_ptr(input_peek(&input));
   dp_ret.i = input_next(input);
   dp_ret.status = PARSER_NORMAL;
+  dp_ret.discard_obj_callback = NULL;
   return dp_ret;
 }
 
