@@ -264,7 +264,7 @@ parser_dp_return test_parser7_expr_dp(dynamic_parser_closure* dpc, input_t input
   parser* remain = then(many1_next, spaces);//i
   parser* eof_parser = eof();
   parser* remain_eof = then(remain, eof_parser);
-i  try_parser(remain_eof);
+  try_parser(remain_eof);
   parser* final = choice(remain_eof, eof_parser);
   //free all parsers except final
   parser_delete(oper);
