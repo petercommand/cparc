@@ -365,6 +365,8 @@ bool test_parser7() {
   parser_delete(p);
   bool result = true;
   test_true(&result, parse_result.status == PARSER_NORMAL);
+  test_true(&result, parse_result.i.pos == 11);
+  test_true(&result, ptr_to_int(parse_result.obj) == 89);
   return result;
 }
 
