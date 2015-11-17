@@ -64,11 +64,13 @@ closure_ctx* closure_ctx_new(static_context* sc, dynamic_parser_closure* dpc) {
 }
 
 void closure_ctx_delete(closure_ctx* ctx) {
-  ctx->ref_count--;
-  if(!ctx->ref_count) {
-    static_context_delete(ctx->sc);
-    dynamic_parser_closure_delete(ctx->dpc);
-    free(ctx);
+  if(ctx) {
+    ctx->ref_count--;
+    if(!ctx->ref_count) {
+      static_context_delete(ctx->sc);
+      dynamic_parser_closure_delete(ctx->dpc);
+      free(ctx); 
+    }
   }
 }
 
@@ -115,13 +117,8 @@ static_context* static_context_from_list(list* list, bool allow_empty) {
   return sc;
 }
 
-range_criteria* range_criteria_new(char lower_bound, char upper_bound) {
-  range_criteria* r = (range_criteria *)calloc(1, sizeof(range_criteria));
-  if(r) {
-    r->lower_bound = lower_bound;
-    r->upper_bound = upper_bound;
-  }
-  return r;
+range_criteria* range_criteria_new() {
+  return (range_criteria *)calloc(1, sizeof(range_criteria));
 }
 
 void range_criteria_delete(range_criteria* r) {
@@ -210,7 +207,7 @@ parser_dp_return parse(parser* p, input_t i) {
   return parse1(p->sc, p->dpc, i);
 }
 parser_dp_return parse1(static_context* sc, dynamic_parser_closure* dpc, input_t i) {
-  if(static_match(sc, &i)) {
+  if(static_match(sc, &i) || sc->allow_empty) {
     return dynamic_parser_closure_eval(dpc, i);
   }
   else {
@@ -222,14 +219,22 @@ parser_dp_return parse1(static_context* sc, dynamic_parser_closure* dpc, input_t
   }
 }
 
+void dynamic_parser_closure_replace_context(dynamic_parser_closure* dpc, size_t n, closure_ctx* ctx) {
+  dpc->ctxes[n] = ctx;
+  ctx->ref_count++;
+}
+
 dynamic_parser_closure* dynamic_parser_closure_new(dynamic_parser dp, size_t size, ...) {
   va_list argp;
   va_start(argp, size);
   closure_ctx* ctx;
   closure_ctx** ctxes = (closure_ctx **) calloc(size + 1, sizeof(closure_ctx *));
   size_t i = 0;
-  while((ctx = va_arg(argp, closure_ctx *)) && i < size) {
-    ctx->ref_count++;
+  while(i < size) {
+    ctx = va_arg(argp, closure_ctx *);
+    if(ctx) {
+      ctx->ref_count++;
+    }
     ctxes[i] = ctx;
     i++;
   }
@@ -254,27 +259,27 @@ parser* choice(parser* a, parser* b) {
 
 parser_dp_return then_dp(dynamic_parser_closure* dpc, input_t input) {
   void* obj1;
-  void (*destroy_obj1_callback)(void *);
+  void (*discard_obj1_callback)(void *);
   parser_dp_return result = dynamic_parser_closure_eval(dpc->ctxes[0]->dpc, input);
   if(result.status == PARSER_NORMAL) {
     obj1 = result.obj;
-    destroy_obj1_callback = result.destroy_obj_callback;
+    discard_obj1_callback = result.discard_obj_callback;
     result = parse1(dpc->ctxes[1]->sc, dpc->ctxes[1]->dpc, result.i);
     if(result.status == PARSER_NORMAL) {
       list* l = list_new();
       list_push_back(l, obj1);
       list_push_back(l, result.obj);
       result.obj = l;
-      result.destroy_obj_callback = list_delete;
+      result.discard_obj_callback = list_delete;
       return result;
     }
     else {
-      if(destroy_obj1_callback) {
-	destroy_obj1_callback(obj1);
+      if(discard_obj1_callback) {
+	discard_obj1_callback(obj1);
       }
     }
   }
-  result.status == PARSER_FAILED;
+  result.status = PARSER_FAILED;
   return result;
 }
 
@@ -398,7 +403,7 @@ parser_dp_return eof_dp(dynamic_parser_closure* dpc, input_t in) {
   parser_dp_return dp_ret;
   dp_ret.i = input_next(in);
   dp_ret.status = PARSER_NORMAL;
-  dp_ret.destroy_obj_callback = NULL;
+  dp_ret.discard_obj_callback = NULL;
   dp_ret.obj = NULL;
   return dp_ret;
 }
