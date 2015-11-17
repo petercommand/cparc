@@ -315,7 +315,7 @@ parser_dp_return test_parser7_expr_dp(dynamic_parser_closure* dpc, input_t input
     return remaining_result;
   }
   else {
-    return remaining_result;
+    return result;
   }
 }
 
