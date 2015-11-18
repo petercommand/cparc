@@ -299,14 +299,14 @@ parser* then(parser* a, parser* b) {
 parser_dp_return choice_dp(dynamic_parser_closure* dpc, input_t input) {
   if(input_peek(&input) == '\0') {//empty input
     if(dpc->ctxes[0]->sc->allow_empty) {
-      return dynamic_parser_closure_eval(dpc->ctxes[0]->dpc, input);
+      return parse1(dpc->ctxes[0]->sc, dpc->ctxes[0]->dpc, input);
     }
     else {
-      return dynamic_parser_closure_eval(dpc->ctxes[1]->dpc, input);
+      return parse1(dpc->ctxes[1]->sc, dpc->ctxes[1]->dpc, input);
     }
   }
   else {//nonempty input
-    parser_dp_return result1 = dynamic_parser_closure_eval(dpc->ctxes[0]->dpc, input);
+    parser_dp_return result1 = parse1(dpc->ctxes[0]->sc, dpc->ctxes[0]->dpc, input);
     if(result1.status == PARSER_NORMAL) {//successful parse
       return result1;
     }
@@ -316,7 +316,7 @@ parser_dp_return choice_dp(dynamic_parser_closure* dpc, input_t input) {
 	if(result1.discard_obj_callback && result1.obj) {
 	  result1.discard_obj_callback(result1.obj);
 	}
-	return dynamic_parser_closure_eval(dpc->ctxes[1]->dpc, input);
+	return parse1(dpc->ctxes[1]->sc, dpc->ctxes[1]->dpc, input);
       }
       else {
 	return result1;
@@ -383,6 +383,16 @@ parser* symbol(char sym) {
   static_context_add(sc, elem, ELEM_CHAR);
   dynamic_parser_closure* dpc = dynamic_parser_closure_new(symbol_dp, 0);
   return parser_new(sc, dpc);
+}
+
+parser_dp_return parser_chain_exec(list* parsers, input_t input) {
+  list_item* head = parsers->head;
+  parser_dp_returnr result;
+  while(head) {
+    result = parse(head->item, input);
+    
+  }
+  //NOT FINISHED
 }
 
 parser* oneof(char* list) {
