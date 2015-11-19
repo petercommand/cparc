@@ -79,6 +79,7 @@ dynamic_parser_closure* dynamic_parser_closure_new_p(closure_ctx** ctxes, dynami
   dpc->ctxes = ctxes;
   dpc->dp_ptr = dp_ptr;
   dpc->ref_count = 0;
+  dpc->objs = NULL;
   return dpc;
 }
 
@@ -384,7 +385,41 @@ parser* symbol(char sym) {
 }
 
 parser_dp_return parser_chain_dp(dynamic_parser_closure* dpc, input_t in) {
-
+  int i = 1;
+  parser_dp_ret dp_ret;
+  void** objs = dpc->objs;
+  while(dpc->ctxes[i]) {
+    dp_ret = parse1(dpc->ctxes[i]->sc, dpc->ctxes[i]->dpc, in);
+    if(dp_ret.status == PARSER_NORMAL) {
+      in = dp_ret.i;
+      obj_with_dealloc* obj_w_dealloc = (obj_with_dealloc *)malloc(sizeof(obj_with_dealloc));
+      obj_w_dealloc->obj = dp_ret.obj;
+      obj_w_dealloc->discard_obj_callback = dp_ret.discard_obj_callback;
+      objs[i-1] = obj_w_dealloc;
+    }
+    else {
+      for(i = 0;objs[i] != NULL;i++) {
+	if(objs[i]->discard_obj_callback) {
+	  objs[i]->discard_obj_callback(objs[i]->obj);
+	}
+	free(objs[i]);
+      }
+      return dp_ret;
+    }
+    i++;
+  }
+  i--;//do not discard final result, only free the wrapper
+  if(i >= 0 && objs[i]) {
+    free(objs[i]);
+  }
+  i--;//the item before the final result
+  while(i >= 0) {
+    if(objs[i] && objs[i]->discard_obj_callback) {
+      objs[i]->discard_obj_callback(objs[i]->obj);
+    }
+    i--;
+  }
+  return dp_ret;
 }
 
 parser* parser_chain(list* parsers, size_t num, input_t input) {
@@ -393,7 +428,7 @@ parser* parser_chain(list* parsers, size_t num, input_t input) {
   bool allow_empty = true;
   static_context* sc = static_context_new();
   bool initial = true;
-  closure_ctx** ctxes = calloc(num + 2, sizeof(closure_ctx *));
+  closure_ctx** ctxes = calloc(num + 2, sizeof(closure_ctx *)); // { maybe self_dpc, ctx0, ctx1, ..., 0 }
   int i = 1;//preserve i = 0 for self closure
   while(head) {
     parser* current = head->item;
@@ -416,6 +451,7 @@ parser* parser_chain(list* parsers, size_t num, input_t input) {
   }
   sc->allow_empty = allow_empty;
   dynamic_parser_closure* dpc = dynamic_parser_closure_new_p(ctxes, parser_chain_dp);
+  dpc->objs = (void **)calloc(num+1, sizeof(void *));
   return parser_new(sc, dpc);
 }
 

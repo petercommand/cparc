@@ -50,14 +50,16 @@ typedef parser_dp_return (*dynamic_parser)(dynamic_parser_closure* ctx, input_t 
 
 typedef struct dynamic_parser_closure {
   tag_t tag;//closure type
-  union {
-    closure_ctx** ctxes;//a pair of static & dynamic context
-  };
+  closure_ctx** ctxes;//a pair of static & dynamic context
+  void** objs;//store objs from parser_chain
   dynamic_parser dp_ptr;
   size_t ref_count;
 } dynamic_parser_closure;
 
-
+typedef struct {
+  void* obj;
+  void (*discard_obj_callback)(void* obj);
+} obj_with_dealloc;
 
 
 
