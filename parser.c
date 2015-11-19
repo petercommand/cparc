@@ -415,7 +415,7 @@ parser* parser_chain(list* parsers, size_t num, input_t input) {
     head = head->next;
   }
   sc->allow_empty = allow_empty;
-  dynamic_parser_closure* dpc = dynamic_parser_closure_new_p(ctxe, parser_chain_dp);
+  dynamic_parser_closure* dpc = dynamic_parser_closure_new_p(ctxes, parser_chain_dp);
   return parser_new(sc, dpc);
 }
 
