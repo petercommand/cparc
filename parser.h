@@ -79,6 +79,16 @@ typedef struct {
   list* range;
 } range_criteria;
 
+typedef struct {
+  int tag;
+  void* item;
+} either;
+
+enum {
+  EITHER_LEFT,
+  EITHER_RIGHT
+} EITHER_ELEM_TAG;
+
 
 enum {
   ELEM_RANGE,
