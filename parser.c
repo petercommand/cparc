@@ -407,14 +407,14 @@ parser* parser_chain(list* parsers, size_t num, input_t input) {
     }
     if(initial) {
       static_context_append(sc, current->sc);
-    }
-    
+    }    
     ctx = closure_ctx_new(current->sc, current->dpc);
     ctxes[i] = ctx;
     i++;
     ctx->ref_count++;
     head = head->next;
   }
+  sc->allow_empty = allow_empty;
   dynamic_parser_closure* dpc = dynamic_parser_closure_new_p(ctxe, parser_chain_dp);
   return parser_new(sc, dpc);
 }
