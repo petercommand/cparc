@@ -416,7 +416,7 @@ parser* parser_chain(list* parsers, size_t num, input_t input) {
     head = head->next;
   }
   dynamic_parser_closure* dpc = dynamic_parser_closure_new_p(ctxe, parser_chain_dp);
-  
+  return parser_new(sc, dpc);
 }
 
 parser* oneof(char* list) {
