@@ -383,14 +383,40 @@ parser* symbol(char sym) {
   return parser_new(sc, dpc);
 }
 
-parser* parser_chain(list* parsers, input_t input) {
+parser_dp_return parser_chain_dp(dynamic_parser_closure* dpc, input_t in) {
+
+}
+
+parser* parser_chain(list* parsers, size_t num, input_t input) {
   list_item* head = parsers->head;
-  parser_dp_returnr result;
+  closure_ctx* ctx;
+  bool allow_empty = true;
+  static_context* sc = static_context_new();
+  bool initial = true;
+  closure_ctx** ctxes = calloc(num + 2, sizeof(closure_ctx *));
+  int i = 1;//preserve i = 0 for self closure
   while(head) {
-    result = parse(head->item, input);
+    parser* current = head->item;
+    if(!current->sc->allow_empty) {
+      if(allow_empty) {
+	//first non_empty parser
+	static_context_append(sc, current->sc);
+	initial = false;
+      }
+      allow_empty = false;
+    }
+    if(initial) {
+      static_context_append(sc, current->sc);
+    }
     
+    ctx = closure_ctx_new(current->sc, current->dpc);
+    ctxes[i] = ctx;
+    i++;
+    ctx->ref_count++;
+    head = head->next;
   }
-  //NOT FINISHED
+  dynamic_parser_closure* dpc = dynamic_parser_closure_new_p(ctxe, parser_chain_dp);
+  
 }
 
 parser* oneof(char* list) {
