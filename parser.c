@@ -122,9 +122,7 @@ range_criteria* range_criteria_new() {
 }
 
 void range_criteria_delete(range_criteria* r) {
-  if(r) {
-    free(r);
-  }
+  free(r);
 }
 
 bool match_range_criteria(range_criteria* elem, const input_t* i) {
@@ -385,7 +383,7 @@ parser* symbol(char sym) {
   return parser_new(sc, dpc);
 }
 
-parser_dp_return parser_chain_exec(list* parsers, input_t input) {
+parser* parser_chain(list* parsers, input_t input) {
   list_item* head = parsers->head;
   parser_dp_returnr result;
   while(head) {
