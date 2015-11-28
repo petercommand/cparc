@@ -437,6 +437,8 @@ parser_dp_return parser_chain_dp(dynamic_parser_closure* dpc, input_t in) {
   while(i >= 0) {
     if(objs[i] && objs[i]->discard_obj_callback) {
       objs[i]->discard_obj_callback(objs[i]->obj);
+      objs[i]->obj = NULL;
+      objs[i]->discard_obj_callback = NULL;
     }
     i--;
   }
