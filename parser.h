@@ -48,18 +48,19 @@ typedef struct {
 
 typedef parser_dp_return (*dynamic_parser)(dynamic_parser_closure* ctx, input_t in);
 
-typedef struct dynamic_parser_closure {
-  tag_t tag;//closure type
-  closure_ctx** ctxes;//a pair of static & dynamic context
-  void** objs;//store objs from parser_chain
-  dynamic_parser dp_ptr;
-  size_t ref_count;
-} dynamic_parser_closure;
-
 typedef struct {
   void* obj;
   void (*discard_obj_callback)(void* obj);
 } obj_with_dealloc;
+
+typedef struct dynamic_parser_closure {
+  tag_t tag;//closure type
+  closure_ctx** ctxes;//a pair of static & dynamic context
+  obj_with_dealloc** objs;//store objs from parser_chain
+  dynamic_parser dp_ptr;
+  size_t ref_count;
+} dynamic_parser_closure;
+
 
 
 
@@ -113,6 +114,8 @@ void dynamic_parser_closure_delete(dynamic_parser_closure* dpc);
 bool match_range_criteria(range_criteria* elem, const input_t* i);
 bool match_char_criteria(char* elem, const input_t* i);
 bool match_str_criteria(char* elem, const input_t* i);
+range_item* range_item_new(char lower_bound, char upper_bound);
+void range_item_delete(range_item* ri);
 parser* choice(parser* a, parser* b);
 parser* symbol(char sym);
 parser* oneof(char* list);
@@ -123,6 +126,8 @@ parser* parser_new(static_context* sc, dynamic_parser_closure* dpc);
 void parser_delete(parser* p);
 closure_ctx* closure_ctx_new(static_context* sc, dynamic_parser_closure* dpc);
 void dynamic_parser_closure_replace_context(dynamic_parser_closure* dpc, size_t n, closure_ctx* ctx);
+parser* parser_chain_final(dynamic_parser dp);
+parser* parser_chain(list* parsers);
 char* char_to_ptr(char a);
 char ptr_to_char(char* a);
 parser* then(parser* a, parser* b);

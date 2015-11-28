@@ -123,19 +123,39 @@ range_criteria* range_criteria_new() {
 }
 
 void range_criteria_delete(range_criteria* r) {
-  free(r);
+  if(r) {
+    list_item* li = r->range->head;
+    while(li) {
+      range_item_delete(li->item);
+      li = li->next;
+    }
+    list_delete(r->range);
+    free(r);
+  }
+}
+
+range_item* range_item_new(char lower_bound, char upper_bound) {
+  range_item* ri = (range_item *)malloc(sizeof(range_item));
+  if(ri) {
+    ri->lower_bound = lower_bound;
+    ri->upper_bound = upper_bound;
+  }
+  return ri;
+}
+
+void range_item_delete(range_item* ri) {
+  free(ri);
 }
 
 bool match_range_criteria(range_criteria* elem, const input_t* i) {
   list_item* range = elem->range->head;
-  for(int j = 0;j < elem->num;j++) {
+  for(int j = 0;j < elem->num;j++, range = range->next) {
     char current = i->input[i->cursor + j];
     if(current != '\0') {
       range_item* ri = range->item;
       if(!((current >= ri->lower_bound) && (current <= ri->upper_bound))) {
 	return false;
       }
-      range = range->next;
     }
     else {
       return false;
@@ -223,6 +243,10 @@ void dynamic_parser_closure_replace_context(dynamic_parser_closure* dpc, size_t 
   ctx->ref_count++;
 }
 
+dynamic_parser_closure* dynamic_parser_closure_copy(dynamic_parser_closure* dpc) {
+  dynamic_parser_closure* new_dpc = dynamic_parser_closure_new_p(dpc->ctxes, dpc->dp_ptr);
+  return new_dpc;
+}
 dynamic_parser_closure* dynamic_parser_closure_new(dynamic_parser dp, size_t size, ...) {
   va_list argp;
   va_start(argp, size);
@@ -340,7 +364,7 @@ parser_dp_return many_dp(dynamic_parser_closure* dpc, input_t in) {
       list_push_back(l, ret.obj);
     }
   }
-  last_ret.discard_obj_callback = list_delete;
+  last_ret.discard_obj_callback = &list_delete;
   last_ret.obj = l;
   return last_ret;
 }
@@ -386,9 +410,10 @@ parser* symbol(char sym) {
 
 parser_dp_return parser_chain_dp(dynamic_parser_closure* dpc, input_t in) {
   int i = 1;
-  parser_dp_ret dp_ret;
-  void** objs = dpc->objs;
+  parser_dp_return dp_ret;
+  obj_with_dealloc** objs = dpc->objs;
   while(dpc->ctxes[i]) {
+    dpc->ctxes[i]->dpc->objs = objs;
     dp_ret = parse1(dpc->ctxes[i]->sc, dpc->ctxes[i]->dpc, in);
     if(dp_ret.status == PARSER_NORMAL) {
       in = dp_ret.i;
@@ -408,11 +433,7 @@ parser_dp_return parser_chain_dp(dynamic_parser_closure* dpc, input_t in) {
     }
     i++;
   }
-  i--;//do not discard final result, only free the wrapper
-  if(i >= 0 && objs[i]) {
-    free(objs[i]);
-  }
-  i--;//the item before the final result
+  i = i - 3;//the item before the final result
   while(i >= 0) {
     if(objs[i] && objs[i]->discard_obj_callback) {
       objs[i]->discard_obj_callback(objs[i]->obj);
@@ -422,26 +443,28 @@ parser_dp_return parser_chain_dp(dynamic_parser_closure* dpc, input_t in) {
   return dp_ret;
 }
 
-parser* parser_chain(list* parsers, size_t num, input_t input) {
+parser* parser_chain(list* parsers) {
+  //warning: the last parser has to keep its own copy of the result
+  //the other copies will be freed upon parser return
   list_item* head = parsers->head;
   closure_ctx* ctx;
   bool allow_empty = true;
   static_context* sc = static_context_new();
   bool initial = true;
-  closure_ctx** ctxes = calloc(num + 2, sizeof(closure_ctx *)); // { maybe self_dpc, ctx0, ctx1, ..., 0 }
+  closure_ctx** ctxes = calloc(parsers->size + 2, sizeof(closure_ctx *)); // { maybe self_dpc, ctx0, ctx1, ..., 0 }
   int i = 1;//preserve i = 0 for self closure
   while(head) {
     parser* current = head->item;
     if(!current->sc->allow_empty) {
       if(allow_empty) {
 	//first non_empty parser
-	static_context_append(sc, current->sc);
+	list_append(sc->list, current->sc->list);
 	initial = false;
       }
       allow_empty = false;
     }
     if(initial) {
-      static_context_append(sc, current->sc);
+      list_append(sc->list, current->sc->list);
     }    
     ctx = closure_ctx_new(current->sc, current->dpc);
     ctxes[i] = ctx;
@@ -450,10 +473,21 @@ parser* parser_chain(list* parsers, size_t num, input_t input) {
     head = head->next;
   }
   sc->allow_empty = allow_empty;
+  obj_with_dealloc** objs = (obj_with_dealloc **)calloc(i, sizeof(void *));
   dynamic_parser_closure* dpc = dynamic_parser_closure_new_p(ctxes, parser_chain_dp);
-  dpc->objs = (void **)calloc(num+1, sizeof(void *));
+  dpc->objs = objs;
+  dynamic_parser_closure_replace_context(dpc, 0, closure_ctx_new(sc, dpc));
   return parser_new(sc, dpc);
 }
+
+parser* parser_chain_final(dynamic_parser dp) {
+  //this is a parser that should not consume any input, but produce result only from its contexts
+  static_context* sc = static_context_new();
+  sc->allow_empty = true;
+  dynamic_parser_closure* dpc = dynamic_parser_closure_new(dp, 0);
+  return parser_new(sc, dpc);
+}
+  
 
 parser* oneof(char* list) {
   //create a new parser that consume exactly one char that is in the list
@@ -527,9 +561,9 @@ char ptr_to_char(char* a) {
 }
 
 int ptr_to_int(int* a) {
-  return ((int)a) - 1;
+  return (int)a;
 }
 
 int* int_to_ptr(int a) {
-  return (int *)(a + 1);
+  return (int *)a;
 }

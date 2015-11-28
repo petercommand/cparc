@@ -3,6 +3,8 @@
 #include "tests.h"
 #include <string.h>
 
+  
+
 parser_dp_return test_parser1_dp(dynamic_parser_closure* ctx, input_t input) {
   parser_dp_return dp_ret;
   dp_ret.obj = NULL;
@@ -193,31 +195,7 @@ bool test_parser6() {
   return result;
 }
 
-
-parser_dp_return test_parser7_par_dp(dynamic_parser_closure* ctx, input_t input) {
-  input = input_forward(input, 1);//'(', which is guranteed by static context
-  parser_dp_return expr_ret = parse1(ctx->ctxes[0]->sc, ctx->ctxes[0]->dpc, input);
-  if(expr_ret.status == PARSER_NORMAL) {
-    input = expr_ret.i;
-    parser* close_paren = symbol(')');
-    parser_dp_return close_paren_result = parse(close_paren, input);
-    if(close_paren_result.status == PARSER_NORMAL) {
-      expr_ret.i = close_paren_result.i;
-      return expr_ret;
-    }
-    else {
-      if(expr_ret.discard_obj_callback) {
-	expr_ret.discard_obj_callback(expr_ret.obj);
-      }
-      return expr_ret;
-    }
-  }
-  else {
-    return expr_ret;
-  }
-}
-
-parser_dp_return test_parser7_num_dp(dynamic_parser_closure* ctx, input_t input) {
+parser_dp_return num_dp(dynamic_parser_closure* ctx, input_t input) {
   int result = 0;
   char peek;
   while((peek = input_peek(&input)) != '\0') {
@@ -240,7 +218,111 @@ parser_dp_return test_parser7_num_dp(dynamic_parser_closure* ctx, input_t input)
   return dp_ret;
 }
 
-parser_dp_return test_parser7_oper_dp(dynamic_parser_closure* ctx, input_t input) {
+dynamic_parser_closure* num_dpc() {
+  return dynamic_parser_closure_new(num_dp, 0);
+}
+
+static_context* num_sc() {
+  static_context* sc = static_context_new();
+  range_criteria* rc = range_criteria_new();
+  list* rc_list = list_new();
+  list_push_back(rc_list, range_item_new('0', '9'));
+  rc->num = 1;
+  rc->range = rc_list;
+  static_context_add(sc, rc, ELEM_RANGE);
+  return sc;
+}  
+
+parser_dp_return test_parser7_rest_dp(dynamic_parser_closure* ctx, input_t input) {
+  parser_dp_return dp_ret;
+  dp_ret.obj = ctx->objs[1]->obj;
+  dp_ret.status = PARSER_NORMAL;
+  dp_ret.i = input;
+  dp_ret.discard_obj_callback = NULL;
+  return dp_ret;
+}
+
+parser_dp_return test_parser7_full_dp(dynamic_parser_closure* ctx, input_t input) {
+  parser_dp_return dp_ret;
+  list* result = list_new();
+  list_push_back(result, ctx->objs[0]->obj);//num
+  if(ctx->objs[1] && ctx->objs[1]->obj) {
+    list_append(result, ctx->objs[1]->obj);
+  }
+  dp_ret.status = PARSER_NORMAL;
+  dp_ret.i = input;
+  dp_ret.discard_obj_callback = (void (*)(void *))&list_delete;
+  
+  dp_ret.obj = result;
+  return dp_ret;
+}
+
+bool test_parser7() {//comma separated values
+  parser* num = parser_new(num_sc(), num_dpc());
+  parser* comma = symbol(',');
+  parser* rest_parser = parser_chain_final(test_parser7_rest_dp);
+  list* parser_chain_list = list_new();
+  list_push_back(parser_chain_list, comma);//ctx 0
+  list_push_back(parser_chain_list, num);//ctx 1
+  list_push_back(parser_chain_list, rest_parser);
+  
+  parser* rest = parser_chain(parser_chain_list);
+  list_delete(parser_chain_list);
+  parser* many_rest = many(rest);
+
+  list* parser_chain_full = list_new();
+  list_push_back(parser_chain_full, num);//ctx 1
+  list_push_back(parser_chain_full, many_rest);//ctx 2
+  parser* full_parser = parser_chain_final(test_parser7_full_dp);
+  list_push_back(parser_chain_full, full_parser);
+  parser* final = parser_chain(parser_chain_full);
+
+  const char* input = "1,2,3,4,5";
+  input_t i;
+  input_init(&i, input);
+  parser_dp_return dp_ret = parse(final, i);
+  parser_delete(num);
+  parser_delete(comma);
+  parser_delete(rest_parser);
+  parser_delete(rest);
+  parser_delete(many_rest);
+  parser_delete(full_parser);
+  parser_delete(final);
+  bool result = true;
+  test_true(&result, dp_ret.status == PARSER_NORMAL);
+  input_t expected_i = input_forward(i, 9);
+  test_true(&result, !input_cmp(&dp_ret.i, &expected_i));
+  test_true(&result, ptr_to_int(((list *)dp_ret.obj)->head->item) == 1);
+  return result;
+}
+/*
+
+
+
+parser_dp_return test_parser8_par_dp(dynamic_parser_closure* ctx, input_t input) {
+  input = input_forward(input, 1);//'(', which is guranteed by static context
+  parser_dp_return expr_ret = parse1(ctx->ctxes[0]->sc, ctx->ctxes[0]->dpc, input);
+  if(expr_ret.status == PARSER_NORMAL) {
+    input = expr_ret.i;
+    parser* close_paren = symbol(')');
+    parser_dp_return close_paren_result = parse(close_paren, input);
+    if(close_paren_result.status == PARSER_NORMAL) {
+      expr_ret.i = close_paren_result.i;
+      return expr_ret;
+    }
+    else {
+      if(expr_ret.discard_obj_callback) {
+	expr_ret.discard_obj_callback(expr_ret.obj);
+      }
+      return expr_ret;
+    }
+  }
+  else {
+    return expr_ret;
+  }
+}
+
+parser_dp_return test_parser8_oper_dp(dynamic_parser_closure* ctx, input_t input) {
   parser_dp_return dp_ret;
   dp_ret.obj = char_to_ptr(input_peek(&input));
   dp_ret.i = input_next(input);
@@ -249,80 +331,40 @@ parser_dp_return test_parser7_oper_dp(dynamic_parser_closure* ctx, input_t input
   return dp_ret;
 }
 
-parser_dp_return test_parser7_expr_dp(dynamic_parser_closure* dpc, input_t input) {
+parser_dp_return test_parser8_expr_dp(dynamic_parser_closure* dpc, input_t input) {
   parser* oper = parser_new(dpc->ctxes[1]->sc, dpc->ctxes[1]->dpc);
   parser* num_or_par = parser_new(dpc->ctxes[0]->sc, dpc->ctxes[0]->dpc);
   parser* space = symbol(' ');
   parser* spaces = many(space);
-  //remove spaces
-  parser_dp_return result = parse(spaces, input);
-  list_delete(result.obj);
-  input = result.i;
-  result = parse(num_or_par, input); //result of num or parenthesized result
-  parser* next = then(oper, num_or_par);//i
-  parser* many1_next = many1(next);//i
-  parser* remain = then(many1_next, spaces);//i
-  parser* eof_parser = eof();
-  parser* remain_eof = then(remain, eof_parser);
-  try_parser(remain_eof);
-  parser* final = choice(remain_eof, eof_parser);
-  //free all parsers except final
-  parser_delete(oper);
-  parser_delete(num_or_par);
-  parser_delete(space);
-  parser_delete(spaces);
-  parser_delete(next);
-  parser_delete(many1_next);
-  parser_delete(remain);
-  parser_delete(remain_eof);
-  parser_dp_return remaining_result = parse(final, input);
-  parser_delete(final);
 
-  if(remaining_result.status == PARSER_NORMAL) {
-    list* remain_eof_l = remaining_result.obj;
-    if(remain_eof_l == NULL) {
-      //eof reached
-      return result;
-    }
-    list* remain_l = remain_eof_l->head->item;
-    list* many1_next_l = remain_l->head->item;
-    list_delete(remain_eof_l);
-    list_delete(remain_l);
-    list_item* head = many1_next_l->head;
-    int orig_result = ptr_to_int(result.obj);
-    while(head) {
-      list* oper_result = head->item;
-      char op = ptr_to_char(oper_result->head->item);
-      int result2 = ptr_to_int(oper_result->head->next->item);
-      switch(op) {
-      case '+':
-	orig_result += result2;
-	break;
-      case '-':
-	orig_result -= result2;
-	break;
-      case '*':
-	orig_result *= result2;
-	break;
-      case '/':
-	orig_result /= result2;
-	break;
-      }
-      list_delete(oper_result);
-      head = head->next;
-    }
-    list_delete(many1_next_l);
-    remaining_result.obj = int_to_ptr(orig_result);
-    remaining_result.discard_obj_callback = NULL;
-    return remaining_result;
-  }
-  else {
-    return result;
-  }
+  list* parser_chain_next = list_new();
+  list_push_back(parser_chain_next, spaces);//ctx 1
+  list_push_back(parser_chain_next, oper);//ctx 2
+  list_push_back(parser_chain_next, spaces);//ctx 3
+  list_push_back(parser_chain_next, num_or_par);//ctx 4
+  list_push_back(parser_chain_next, spaces);//ctx 5
+  list_push_back(parser_chain_next, parser_next_final);
+  parser* next = parser_chain(parser_chain_next);
+  parser* eof_parser = eof();
+  parser* many_next = many(next);
+
+
+  list* parser_chain_list = list_new();
+  list_push_back(parser_chain_list, spaces);
+  list_push_back(parser_chain_list, num_or_par);
+  list_push_back(parser_chain_list, many_next);
+  list_push_back(parser_chain_list, eof_parser);
+  list_push_back(parser_chain_list, parser_expr_final);
+  parser* expr_chain = parser_chain(parser_chain_list);
+  list_delete(parser_chain_list);
+
+
+
+
 }
 
 
-bool test_parser7() {
+bool test_parser8() {
 
   static_context* num_sc = static_context_new();
   for(char i = '0';i <= '9';i++) {
@@ -365,11 +407,9 @@ bool test_parser7() {
   parser_delete(p);
   bool result = true;
   test_true(&result, parse_result.status == PARSER_NORMAL);
-  test_true(&result, parse_result.i.pos == 11);
-  test_true(&result, ptr_to_int(parse_result.obj) == 89);
   return result;
 }
-
+*/
 int main() {
   test_case("test_parser1", test_parser1);
   test_case("test_parser2", test_parser2);

@@ -1,4 +1,4 @@
-CFLAGS  = -Wall -Wextra -Wmaybe-uninitialized -Wuninitialized -g -std=gnu99
+CFLAGS  = -Wall -Wextra -Wuninitialized -g -std=gnu99
 
 
 SRCS = main.c list.c input.c parser.c tests/test_parser.c
