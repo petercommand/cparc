@@ -277,7 +277,7 @@ bool test_parser7() {//comma separated values
   list_push_back(parser_chain_full, full_parser);
   parser* final = parser_chain(parser_chain_full);
 
-  const char* input = "1,2,3,4,5";
+  const char* input = "1,20,300,4000,50000";
   input_t i;
   input_init(&i, input);
   parser_dp_return dp_ret = parse(final, i);
@@ -290,9 +290,17 @@ bool test_parser7() {//comma separated values
   parser_delete(final);
   bool result = true;
   test_true(&result, dp_ret.status == PARSER_NORMAL);
-  input_t expected_i = input_forward(i, 9);
-  test_true(&result, !input_cmp(&dp_ret.i, &expected_i));
-  test_true(&result, ptr_to_int(((list *)dp_ret.obj)->head->item) == 1);
+  list* l = dp_ret.obj;
+  list_item* li = l->head;
+  test_true(&result, ptr_to_int(li->item) == 1);
+  li = li->next;
+  test_true(&result, ptr_to_int(li->item) == 20);
+  li = li->next;
+  test_true(&result, ptr_to_int(li->item) == 300);
+  li = li->next;
+  test_true(&result, ptr_to_int(li->item) == 4000);
+  li = li->next;
+  test_true(&result, ptr_to_int(li->item) == 50000);
   return result;
 }
 /*
