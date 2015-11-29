@@ -119,6 +119,7 @@ void range_item_delete(range_item* ri);
 parser* choice(parser* a, parser* b);
 parser* symbol(char sym);
 parser* oneof(char* list);
+parser* num();
 parser* eof();
 parser* many(parser* p);
 parser* many1(parser* p);

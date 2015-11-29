@@ -514,6 +514,42 @@ parser_dp_return eof_dp(dynamic_parser_closure* dpc, input_t in) {
   return dp_ret;
 }
 
+parser_dp_return num_dp(dynamic_parser_closure* ctx, input_t input) {
+  int result = 0;
+  char peek;
+  while((peek = input_peek(&input)) != '\0') {
+    if(peek >= '0' && peek <= '9') {
+      int digit = peek -= '0';
+      result += digit;
+      result *= 10;
+      input = input_next(input);
+    }
+    else {
+      break;
+    }
+  }
+  result /= 10;
+  parser_dp_return dp_ret;
+  dp_ret.obj = int_to_ptr(result);
+  dp_ret.status = PARSER_NORMAL;
+  dp_ret.i = input;
+  dp_ret.discard_obj_callback = NULL;
+  return dp_ret;
+}
+
+parser* num() {
+  static_context* sc = static_context_new();
+  range_criteria* rc = range_criteria_new();
+  list* rc_list = list_new();
+  list_push_back(rc_list, range_item_new('0', '9'));
+  rc->num = 1;
+  rc->range = rc_list;
+  static_context_add(sc, rc, ELEM_RANGE);
+
+  dynamic_parser_closure* dpc = dynamic_parser_closure_new(num_dp, 0);
+  return parser_new(sc, dpc);
+}
+
 parser* eof() {
   static_context* sc = static_context_new();
   static_context_add(sc, char_to_ptr('\0'), ELEM_CHAR);

@@ -195,43 +195,6 @@ bool test_parser6() {
   return result;
 }
 
-parser_dp_return num_dp(dynamic_parser_closure* ctx, input_t input) {
-  int result = 0;
-  char peek;
-  while((peek = input_peek(&input)) != '\0') {
-    if(peek >= '0' && peek <= '9') {
-      int digit = peek -= '0';
-      result += digit;
-      result *= 10;
-      input = input_next(input);
-    }
-    else {
-      break;
-    }
-  }
-  result /= 10;
-  parser_dp_return dp_ret;
-  dp_ret.obj = int_to_ptr(result);
-  dp_ret.status = PARSER_NORMAL;
-  dp_ret.i = input;
-  dp_ret.discard_obj_callback = NULL;
-  return dp_ret;
-}
-
-dynamic_parser_closure* num_dpc() {
-  return dynamic_parser_closure_new(num_dp, 0);
-}
-
-static_context* num_sc() {
-  static_context* sc = static_context_new();
-  range_criteria* rc = range_criteria_new();
-  list* rc_list = list_new();
-  list_push_back(rc_list, range_item_new('0', '9'));
-  rc->num = 1;
-  rc->range = rc_list;
-  static_context_add(sc, rc, ELEM_RANGE);
-  return sc;
-}  
 
 parser_dp_return test_parser7_rest_dp(dynamic_parser_closure* ctx, input_t input) {
   parser_dp_return dp_ret;
@@ -258,12 +221,12 @@ parser_dp_return test_parser7_full_dp(dynamic_parser_closure* ctx, input_t input
 }
 
 bool test_parser7() {//comma separated values
-  parser* num = parser_new(num_sc(), num_dpc());
+  parser* number = num();
   parser* comma = symbol(',');
   parser* rest_parser = parser_chain_final(test_parser7_rest_dp);
   list* parser_chain_list = list_new();
   list_push_back(parser_chain_list, comma);//ctx 0
-  list_push_back(parser_chain_list, num);//ctx 1
+  list_push_back(parser_chain_list, number);//ctx 1
   list_push_back(parser_chain_list, rest_parser);
   
   parser* rest = parser_chain(parser_chain_list);
@@ -271,8 +234,8 @@ bool test_parser7() {//comma separated values
   parser* many_rest = many(rest);
 
   list* parser_chain_full = list_new();
-  list_push_back(parser_chain_full, num);//ctx 1
-  list_push_back(parser_chain_full, many_rest);//ctx 2
+  list_push_back(parser_chain_full, number);//ctx 0
+  list_push_back(parser_chain_full, many_rest);//ctx 1
   parser* full_parser = parser_chain_final(test_parser7_full_dp);
   list_push_back(parser_chain_full, full_parser);
   parser* final = parser_chain(parser_chain_full);
@@ -281,7 +244,7 @@ bool test_parser7() {//comma separated values
   input_t i;
   input_init(&i, input);
   parser_dp_return dp_ret = parse(final, i);
-  parser_delete(num);
+  parser_delete(number);
   parser_delete(comma);
   parser_delete(rest_parser);
   parser_delete(rest);
