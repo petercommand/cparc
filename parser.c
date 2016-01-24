@@ -171,6 +171,13 @@ bool match_char_criteria(char* elem, const input_t* i) {
   return false;
 }
 
+bool match_inverse_char_criteria(char* elem, const input_t* i) {
+  if((input_peek(i) != ptr_to_char(elem)) && (input_peek(i) != '\0')) {
+    return true;
+  }
+  return false;
+}
+
 bool match_str_criteria(char* elem, const input_t* i) {
   size_t j = 0;
   while(*elem != '\0') {
@@ -193,6 +200,8 @@ bool match_static_criteria(tag_t tag, void* elem, const input_t* i) {
     return match_range_criteria(elem, i);
   case ELEM_CHAR:
     return match_char_criteria(elem, i);
+  case ELEM_INVERSE_CHAR:
+    return match_inverse_char_criteria(elem, i);
   case ELEM_STR:
     return match_str_criteria(elem, i);
   default:
@@ -446,7 +455,7 @@ parser_dp_return parser_chain_dp(dynamic_parser_closure* dpc, input_t in) {
 }
 
 parser* parser_chain(list* parsers) {
-  //warning: the last parser has to keep its own copy of the result
+  //warning: the last parser has to keep its own copy of the result for result that has set a delete handler
   //the other copies will be freed upon parser return
   list_item* head = parsers->head;
   closure_ctx* ctx;
@@ -547,6 +556,22 @@ parser* num() {
   static_context_add(sc, rc, ELEM_RANGE);
 
   dynamic_parser_closure* dpc = dynamic_parser_closure_new(num_dp, 0);
+  return parser_new(sc, dpc);
+}
+
+parser_dp_return noneof_dp(dynamic_parser_closure* unused, input_t in) {
+  parser_dp_return ret;
+  ret.obj = char_to_ptr(input_peek(&in));
+  ret.i = input_next(in);
+  ret.status = PARSER_NORMAL;
+  ret.discard_obj_callback = NULL;
+  return ret;
+}
+
+parser* noneof(char c) {
+  static_context* sc = static_context_new();
+  static_context_add(sc, char_to_ptr('c'), ELEM_INVERSE_CHAR);
+  dynamic_parser_closure* dpc = dynamic_parser_closure_new(noneof_dp, 0);
   return parser_new(sc, dpc);
 }
 
