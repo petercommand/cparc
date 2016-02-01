@@ -1,7 +1,7 @@
 CFLAGS  = -Wall -Wextra -Wuninitialized -g -std=gnu99
 
 
-SRCS = main.c list.c input.c parser.c tests/test_parser.c
+SRCS = list.c input.c parser.c tests/test_parser.c
 OBJS = $(SRCS:%.c=%.o)
 # BIN = main
 %.o: %.c
