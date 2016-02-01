@@ -3,11 +3,11 @@ CFLAGS  = -Wall -Wextra -Wuninitialized -g -std=gnu99
 
 SRCS = main.c list.c input.c parser.c tests/test_parser.c
 OBJS = $(SRCS:%.c=%.o)
-BIN = main
+# BIN = main
 %.o: %.c
 	$(CC) $(CFLAGS) -c $<
 
-all: $(BIN)
+#all: $(BIN)
 
 
 #main: $(OBJS)
